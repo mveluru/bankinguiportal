@@ -11,7 +11,11 @@ import type {
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/brite";
-const CUSTOMER_ID = process.env.NEXT_PUBLIC_CUSTOMER_ID ?? "demo-customer";
+// Set from the logged-in user by AuthProvider; falls back to the env default (rate-limit key only).
+let customerId = process.env.NEXT_PUBLIC_CUSTOMER_ID ?? "demo-customer";
+export const setCustomerId = (id: string | null) => {
+  customerId = id ?? process.env.NEXT_PUBLIC_CUSTOMER_ID ?? "demo-customer";
+};
 
 export class ApiError extends Error {}
 
@@ -35,7 +39,7 @@ async function request<T>(path: string, init?: RequestInit, base = BASE): Promis
     res = await fetch(`${base}${path}`, {
       ...init,
       cache: "no-store",
-      headers: { "Content-Type": "application/json", "X-Customer-Id": CUSTOMER_ID, ...init?.headers },
+      headers: { "Content-Type": "application/json", "X-Customer-Id": customerId, ...init?.headers },
     });
   } catch {
     // A 429 from the rate-limit filter carries no CORS headers, so it surfaces as a network error too.
