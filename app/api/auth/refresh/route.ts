@@ -8,7 +8,8 @@ export async function POST() {
   if (!session) return NextResponse.json({ message: "Session expired." }, { status: 401 });
 
   const token = await createSessionToken(session.username, session.customerId, session.remember === true);
-  const fresh = (await verifySessionToken(token))!;
+  const fresh = await verifySessionToken(token);
+  if (!fresh) return NextResponse.json({ message: "Session expired." }, { status: 401 });
   const res = NextResponse.json({ sessionExpires: fresh.exp * 1000 });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(session.remember === true));
   return res;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
+import { isDisabled } from "@/lib/accounts";
 import { activitySummaries, audit } from "@/lib/audit";
 import { checkLock } from "@/lib/lockout";
 import { getProfile } from "@/lib/profiles";
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
       displayName: profile.displayName,
       email: profile.email,
       twoFactorEnabled: twoFactorStatus(u.username).enabled,
+      disabled: isDisabled(u.username),
       locked: lock.locked,
       lockedForSeconds: lock.retryAfterSeconds,
       lastSignIn: summary.lastSignIn ?? null,

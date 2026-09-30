@@ -32,10 +32,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "That code is not valid." }, { status: 400 });
   }
 
-  audit(request, "login_success", pending.username, pending.remember ? "two-step, remember me" : "two-step");
   const remember = pending.remember === true;
   const token = await createSessionToken(pending.username, pending.customerId, remember);
-  const session = (await verifySessionToken(token))!;
+  const session = await verifySessionToken(token);
+  if (!session) {
+    // Disabled between the password step and the code step.
+    audit(request, "login_disabled", pending.username);
+    return NextResponse.json({ message: "This account has been disabled. Contact an administrator." }, { status: 403 });
+  }
+  audit(request, "login_success", pending.username, pending.remember ? "two-step, remember me" : "two-step");
   const res = NextResponse.json({
     username: pending.username,
     customerId: pending.customerId,

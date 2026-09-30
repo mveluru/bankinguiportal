@@ -15,7 +15,13 @@ export type AuditEvent =
   | "password_reset"
   | "two_factor_enabled"
   | "two_factor_disabled"
+  | "login_disabled"
+  | "account_unlocked"
+  | "two_factor_reset"
+  | "account_disabled"
+  | "account_enabled"
   | "admin_users_viewed"
+  | "admin_action"
   | "admin_access_denied";
 
 /** ok = success, warn = something failed or was refused, info = neutral. */
@@ -35,6 +41,12 @@ export const EVENT_INFO: Record<AuditEvent, { label: string; level: "ok" | "warn
   password_reset: { label: "Password reset", level: "ok" },
   two_factor_enabled: { label: "Two-factor authentication turned on", level: "ok" },
   two_factor_disabled: { label: "Two-factor authentication turned off", level: "warn" },
+  login_disabled: { label: "Sign-in refused (account disabled)", level: "warn" },
+  account_unlocked: { label: "Account unlocked by an administrator", level: "info" },
+  two_factor_reset: { label: "Two-factor authentication reset by an administrator", level: "warn" },
+  account_disabled: { label: "Account disabled by an administrator", level: "warn" },
+  account_enabled: { label: "Account re-enabled by an administrator", level: "ok" },
+  admin_action: { label: "Admin action", level: "info" },
   admin_users_viewed: { label: "Viewed the user list (admin)", level: "info" },
   admin_access_denied: { label: "Refused: admin area (not an admin)", level: "warn" },
 };
@@ -49,4 +61,4 @@ export interface AuditRecord {
 }
 
 /** Events that count as a failed or suspicious attempt for the "since your last sign-in" notice. */
-export const FAILURE_EVENTS: AuditEvent[] = ["login_failed", "login_blocked", "two_factor_failed", "two_factor_locked"];
+export const FAILURE_EVENTS: AuditEvent[] = ["login_failed", "login_blocked", "login_disabled", "two_factor_failed", "two_factor_locked"];

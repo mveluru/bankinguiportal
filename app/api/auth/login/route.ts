@@ -9,6 +9,7 @@ import {
   sessionCookieOptions,
   verifySessionToken,
 } from "@/lib/session";
+import { isDisabled } from "@/lib/accounts";
 import { audit } from "@/lib/audit";
 import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
 import { isTwoFactorEnabled } from "@/lib/twofactor";
@@ -37,6 +38,12 @@ export async function POST(request: Request) {
   }
   clearFailures(username);
 
+  // Only revealed after the right password, so it can't be used to probe which accounts exist or are disabled.
+  if (isDisabled(user.username)) {
+    audit(request, "login_disabled", user.username);
+    return NextResponse.json({ message: "This account has been disabled. Contact an administrator." }, { status: 403 });
+  }
+
   // Password is right, but with 2FA on no session exists until the code step succeeds.
   if (isTwoFactorEnabled(user.username)) {
     audit(request, "two_factor_required", user.username);
@@ -45,9 +52,10 @@ export async function POST(request: Request) {
     return res;
   }
 
-  audit(request, "login_success", user.username, remember ? "remember me" : undefined);
   const token = await createSessionToken(user.username, user.customerId, remember);
-  const session = (await verifySessionToken(token))!;
+  const session = await verifySessionToken(token);
+  if (!session) return NextResponse.json({ message: "Sign-in failed. Please try again." }, { status: 403 });
+  audit(request, "login_success", user.username, remember ? "remember me" : undefined);
   const res = NextResponse.json({
     username: user.username,
     customerId: user.customerId,

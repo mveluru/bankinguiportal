@@ -1,3 +1,5 @@
+import { isSessionRevoked } from "@/lib/accounts";
+
 // Demo session: an HMAC-signed cookie. Uses Web Crypto so it runs in both route handlers and proxy.ts.
 // This is front-end-only demo auth: the banking backend does not authenticate requests.
 export const SESSION_COOKIE = "bank_session";
@@ -23,6 +25,7 @@ export interface Session {
   username: string;
   customerId: string;
   exp: number; // epoch seconds
+  iat?: number; // issued-at, epoch ms; absent on tokens from before revocation existed
   remember?: boolean; // "remember me": persistent cookie + longer lifetime, preserved on refresh
 }
 
@@ -69,6 +72,7 @@ export async function createSessionToken(username: string, customerId: string, r
     username,
     customerId,
     exp: Math.floor(Date.now() / 1000) + sessionLifetime(remember),
+    iat: Date.now(),
     ...(remember ? { remember } : {}),
   };
   return sign(session);
@@ -77,7 +81,9 @@ export async function createSessionToken(username: string, customerId: string, r
 export async function verifySessionToken(token: string | undefined): Promise<Session | null> {
   const claims = await open<Session & { kind?: string }>(token);
   // A 2FA-pending token is signed with the same key; it must never be accepted as a session.
-  return claims && claims.kind === undefined ? claims : null;
+  if (!claims || claims.kind !== undefined) return null;
+  // Admin-disabled accounts and revoked sessions stop working immediately, whatever the cookie says.
+  return isSessionRevoked(claims.username, claims.iat) ? null : claims;
 }
 
 /** Username from a validly signed session token even if it has expired. For audit logging only, never for access. */
