@@ -37,6 +37,9 @@ export default function AccountPage() {
         {data.closedDate && ` · closed ${data.closedDate}`}
       </p>
       <div className="balance">{formatMoney(data.balance)}</div>
+      <div className="row" style={{ marginTop: 12 }}>
+        <Link href={`/accounts/${data.accountNumber}/statement`} className="btn">Statement</Link>
+      </div>
       {data.accountStatus === "ACTIVE" && ["CHECKING", "SAVINGS"].includes(data.accountType) && (
         <div className="row" style={{ marginTop: 12 }}>
           <Link href={`/accounts/${data.accountNumber}/deposit`} className="btn">Deposit</Link>

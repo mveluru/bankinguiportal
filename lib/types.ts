@@ -112,3 +112,19 @@ export interface AccountResult {
   accountType: AccountType;
   balance: number;
 }
+
+export interface AccountTransaction {
+  accountNumber: string;
+  transactionType: "DEPOSIT" | "WITHDRAWAL";
+  amount: number;
+  balanceAfter: number;
+  transactionDate: string;
+  depositType: string | null;
+}
+
+export interface BankStatement {
+  accountNumber: string;
+  beginDate: string;
+  endDate: string;
+  transactions: AccountTransaction[];
+}

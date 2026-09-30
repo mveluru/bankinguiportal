@@ -2,6 +2,7 @@ import type {
   AccountOverviewResponse,
   AccountApiResponse,
   AccountResult,
+  BankStatement,
   DepositRequest,
   WithdrawRequest,
   AccountRegistrationRequest,
@@ -72,4 +73,12 @@ export const withdraw = (body: WithdrawRequest) =>
 export const deposit = (body: DepositRequest) =>
   request<AccountApiResponse>("/v1/api/accounts/deposit", { method: "POST", body: JSON.stringify(body) }, PROXY).then(
     toResult,
+  );
+
+/** Side effect: the backend emails/SMSes the statement, so only call this on an explicit user action. */
+export const getStatement = (accountNumber: string, beginDate: string, endDate: string) =>
+  request<BankStatement>(
+    `/v1/api/accounts/${encodeURIComponent(accountNumber)}/statement?beginDate=${beginDate}&endDate=${endDate}`,
+    undefined,
+    PROXY,
   );

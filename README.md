@@ -10,6 +10,7 @@ backend's BFF endpoints (`/bff/v1/portal/*`), one call per screen.
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /accounts/{n}/overview?days=` |
 | Open account | `/accounts/open` | `POST /accounts/open` |
 | Deposit | `/accounts/[accountNumber]/deposit` | `POST /v1/api/accounts/deposit` (via proxy) |
+| Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `GET /v1/api/accounts/{n}/statement` (via proxy) |
 | Withdraw | `/accounts/[accountNumber]/withdraw` | `POST /v1/api/accounts/withdraw` (via proxy) |
 
 ## Run
