@@ -159,6 +159,16 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       ],
     },
     {
+      id: "cookies",
+      category: "Signing in & security",
+      question: "Does the portal use cookies?",
+      answer: [
+        "Only essential ones: one keeps you signed in, and a second lasts a few minutes while you enter a two-factor code. Your theme choice and the fact that you've dismissed the cookie notice are remembered in your browser's local storage.",
+        "There are no advertising or analytics cookies and no third-party trackers, so there is nothing to opt out of.",
+      ],
+      links: [{ href: "/privacy#cookies", label: "Cookies in the Privacy Policy" }],
+    },
+    {
       id: "your-data",
       category: "Signing in & security",
       question: "What information does the portal keep about me?",

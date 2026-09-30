@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CookieNotice from "@/components/CookieNotice";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
 import SessionTimeout from "@/components/SessionTimeout";
@@ -37,8 +38,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/help" className="tap">
                 Help
               </Link>
+              <Link href="/privacy#cookies" className="tap">
+                Cookies
+              </Link>
             </nav>
           </footer>
+          <CookieNotice />
         </AuthProvider>
       </body>
     </html>

@@ -49,7 +49,7 @@ export default function NavBar() {
       <Link href="/" className="brand">
         Brite Banking
       </Link>
-      <div className="topbar-actions">
+      <div className={`topbar-actions${user ? "" : " push"}`}>
         {!user && (
           <Link href="/help" className="tap">
             Help

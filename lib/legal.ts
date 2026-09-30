@@ -79,10 +79,11 @@ export function privacyDoc(): LegalDoc {
                 ["bank_session (cookie)", "Keeps you signed in. It's signed, can't be read by scripts on the page, and is essential for the portal to work", `Until you close the browser or ${session}, whichever is first. With “Remember me”, up to ${remember}`],
                 ["bank_2fa_pending (cookie)", "Remembers that your password was accepted while you enter your two-factor code", "5 minutes"],
                 ["theme (local storage)", "Remembers your Light, Dark or System theme on this device", "Until you clear your browser's site data"],
+                ["cookie_notice_ack (local storage)", "Remembers that you've seen the cookie notice, so it isn't shown again", "Until you clear your browser's site data"],
               ],
             },
           },
-          { p: "The portal doesn't use advertising or analytics cookies, and doesn't load third-party trackers." },
+          { p: "All of these are strictly necessary for the portal to work or are choices you made yourself, so the portal shows a cookie notice rather than asking for consent. It doesn't use advertising or analytics cookies, and doesn't load third-party trackers." },
         ],
       },
       {
