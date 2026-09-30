@@ -1,7 +1,10 @@
-:root { --bg:#f5f7fa; --fg:#1b2733; --muted:#5f6c7b; --brand:#0b5cad; --card:#fff; --line:#dde3ea; --err:#b3261e; }
+:root { color-scheme: light dark; --bg:#f5f7fa; --fg:#1b2733; --muted:#5f6c7b; --brand:#0b5cad; --card:#fff; --line:#dde3ea; --err:#b3261e; }
+:root[data-theme="light"] { color-scheme: light; }
+/* Dark palette applies for the OS setting unless the user forced light, or when the user forced dark. */
 @media (prefers-color-scheme: dark) {
-  :root { --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
+  :root:not([data-theme="light"]) { --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
 }
+:root[data-theme="dark"] { color-scheme: dark; --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; line-height:1.5; }
 a { color:var(--brand); text-decoration:none; }
@@ -36,3 +39,4 @@ button.link:hover { text-decoration:underline; }
 dialog.confirm { border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); padding:20px; max-width:360px; }
 dialog.confirm::backdrop { background:rgba(0,0,0,.5); }
 button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
+button.icon { background:none; color:var(--fg); border:1px solid var(--line); padding:4px 10px; }

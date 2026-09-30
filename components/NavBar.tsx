@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function NavBar() {
   const { user, logout } = useAuth();
@@ -24,16 +25,19 @@ export default function NavBar() {
       <Link href="/" className="brand">
         Brite Banking
       </Link>
-      {user && (
-        <nav>
-          <Link href="/">Home</Link>
-          <Link href="/accounts/open">Open an account</Link>
-          <span className="muted">{user.username}</span>
-          <button type="button" className="link" onClick={() => dialog.current?.showModal()}>
-            Sign out
-          </button>
-        </nav>
-      )}
+      <div className="row" style={{ alignItems: "center" }}>
+        {user && (
+          <nav>
+            <Link href="/">Home</Link>
+            <Link href="/accounts/open">Open an account</Link>
+            <span className="muted">{user.username}</span>
+            <button type="button" className="link" onClick={() => dialog.current?.showModal()}>
+              Sign out
+            </button>
+          </nav>
+        )}
+        <ThemeToggle />
+      </div>
       <dialog ref={dialog} className="confirm" aria-labelledby="signout-title">
         <h2 id="signout-title" style={{ marginTop: 0 }}>Sign out?</h2>
         <p className="muted">You will need to sign in again to view your accounts.</p>
