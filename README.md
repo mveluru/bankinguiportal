@@ -90,6 +90,9 @@ Build once and ship, instead of building on the server:
 including a trimmed `node_modules`). It is not enabled today, and `public/` and `.next/static` must then be copied
 next to the standalone server.
 
+Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, rollback):
+[`.claude/docs/production_deploy.md`](.claude/docs/production_deploy.md).
+
 ### Production checklist
 
 - **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. Required in
