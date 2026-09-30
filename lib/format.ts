@@ -11,3 +11,7 @@ const ACCOUNT_LABELS: Record<string, string> = {
 export const accountLabel = (t: string) => ACCOUNT_LABELS[t] ?? t;
 export const titleCase = (s: string) =>
   s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Suspension end from the API (ISO local date-time) for display; null means indefinite. */
+export const formatSuspendedUntil = (iso: string | null) =>
+  iso ? `until ${iso.replace("T", " ").slice(0, 16)}` : "indefinitely";

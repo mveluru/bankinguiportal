@@ -1,11 +1,13 @@
 // Mirrors the BFF DTOs in springbootexampleprojects (org.bee.banking.bff.dto).
 export type AccountType = "CHECKING" | "SAVINGS" | "INVESTMENT" | "RETIREMENT" | "CREDIT_OR_LOAN";
-export type AccountStatus = "ACTIVE" | "CLOSED";
+export type AccountStatus = "ACTIVE" | "SUSPENDED" | "CLOSED";
 
 export interface PortalAccountSummary {
   accountNumber: string;
   accountType: AccountType;
   accountStatus: AccountStatus;
+  suspended: boolean;
+  suspendedUntil: string | null; // ISO local date-time; null = indefinite
   createdDate: string;
   closedDate: string | null;
   firstName: string;
@@ -29,6 +31,7 @@ export interface PortalLocation {
 
 export interface PortalHomeResponse {
   totalActiveAccounts: number;
+  totalSuspendedAccounts: number;
   accounts: PortalAccountSummary[];
   nearbyLocations: PortalLocation[];
 }
@@ -46,10 +49,13 @@ export interface AccountOverviewResponse {
   accountType: AccountType;
   accountStatus: AccountStatus;
   balance: number;
+  suspended: boolean;
+  suspendedUntil: string | null; // ISO local date-time; null = indefinite
   createdDate: string;
   closedDate: string | null;
   firstName: string;
   lastName: string;
+  maskedPhoneNumber: string | null; // ***-***-0101; null if none on file
   activityDays: number;
   recentActivity: PortalActivityItem[];
 }
@@ -62,6 +68,7 @@ export interface OpenAccountResponse {
 export interface AccountRegistrationRequest {
   firstName: string;
   lastName: string;
+  phoneNumber: string; // ###-###-####
   dateOfBirth: string; // MM/dd/yyyy
   street: string;
   city: string;
@@ -70,6 +77,17 @@ export interface AccountRegistrationRequest {
   addressLine1: string;
   addressLine2?: string;
   accountType: string;
+}
+
+export interface SuspendAccountRequest {
+  notes: string; // required, max 500
+  startDateTime?: string; // ISO local date-time, not in the future; omitted = now
+  endDateTime?: string; // ISO local date-time, in the future; omitted = indefinite
+}
+
+export interface UpdateSuspensionRequest {
+  notes?: string;
+  endDateTime?: string;
 }
 
 export interface AccountHolderDetails {

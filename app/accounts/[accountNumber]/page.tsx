@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getOverview } from "@/lib/api";
-import { accountLabel, formatMoney, titleCase } from "@/lib/format";
+import { accountLabel, formatMoney, formatSuspendedUntil, titleCase } from "@/lib/format";
 import type { AccountOverviewResponse } from "@/lib/types";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
 
@@ -38,11 +38,25 @@ export default function AccountPage() {
       <p className="muted">
         {data.accountNumber} · {data.firstName} {data.lastName} · opened {data.createdDate}
         {data.closedDate && ` · closed ${data.closedDate}`}
+        {data.maskedPhoneNumber && ` · phone ${data.maskedPhoneNumber}`}
       </p>
+      {data.suspended && (
+        <p className="error">
+          This account is suspended {formatSuspendedUntil(data.suspendedUntil)}. Deposits and withdrawals are blocked
+          until it is reactivated.
+        </p>
+      )}
       <div className="balance">{formatMoney(data.balance)}</div>
       <div className="row" style={{ marginTop: 12 }}>
         <Link href={`/accounts/${data.accountNumber}/statement`} className="btn">Statement</Link>
       </div>
+      {data.accountStatus !== "CLOSED" && (
+        <div className="row" style={{ marginTop: 12 }}>
+          <Link href={`/accounts/${data.accountNumber}/suspend`} className="btn">
+            {data.suspended ? "Manage suspension" : "Suspend account"}
+          </Link>
+        </div>
+      )}
       {data.accountStatus === "ACTIVE" && ["CHECKING", "SAVINGS"].includes(data.accountType) && (
         <div className="row" style={{ marginTop: 12 }}>
           <Link href={`/accounts/${data.accountNumber}/deposit`} className="btn">Deposit</Link>

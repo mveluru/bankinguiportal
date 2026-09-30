@@ -198,7 +198,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       question: "How do I make a deposit?",
       answer: [
         "Open the account and choose Deposit. Enter the amount and whether it's a check or cash. Cash deposits are limited to $5,000 by default; check deposits aren't.",
-        "Only checking and savings accounts support deposits, and closed accounts can't be used.",
+        "Only checking and savings accounts support deposits, and closed or suspended accounts can't be used.",
       ],
     },
     {

@@ -8,6 +8,8 @@ import type {
   AccountRegistrationRequest,
   OpenAccountResponse,
   PortalHomeResponse,
+  SuspendAccountRequest,
+  UpdateSuspensionRequest,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/brite";
@@ -59,6 +61,24 @@ export const getOverview = (accountNumber: string, days?: number) =>
 
 export const openAccount = (body: AccountRegistrationRequest) =>
   request<OpenAccountResponse>("/bff/v1/portal/accounts/open", { method: "POST", body: JSON.stringify(body) });
+
+const accountPath = (n: string) => `/bff/v1/portal/accounts/${encodeURIComponent(n)}`;
+
+/** Suspended accounts reject every withdraw/deposit until reactivated. Returns the refreshed overview. */
+export const suspendAccount = (accountNumber: string, body: SuspendAccountRequest) =>
+  request<AccountOverviewResponse>(`${accountPath(accountNumber)}/suspend`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const updateSuspension = (accountNumber: string, body: UpdateSuspensionRequest) =>
+  request<AccountOverviewResponse>(`${accountPath(accountNumber)}/suspension`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+
+export const reactivateAccount = (accountNumber: string) =>
+  request<AccountOverviewResponse>(`${accountPath(accountNumber)}/reactivate`, { method: "POST" });
 
 // Non-BFF endpoints go through the Next.js rewrite (same origin, so no CORS).
 const PROXY = "/api/banking";

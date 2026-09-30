@@ -38,8 +38,9 @@ Details:
 - **Phone number** shows a grey `xxx-xxx-xxxx` placeholder. Only digits and hyphens can end up in the box: an `onInput`
   handler (`formatPhone`) keeps the digits (max 10) and inserts the hyphens itself. It is required and must match
   `123-456-7890`.
-- **Middle, Country and Phone are UI-only.** The backend (`AccountHolderDetails` in `lib/types.ts`) has no fields for
-  them, so they are collected but not sent. Its State (2 letters) and ZIP (5 digits) rules still apply, so a non-US
+- **Middle and Country are UI-only.** The backend (`AccountHolderDetails` in `lib/types.ts`) has no fields for
+  them, so they are collected but not sent. **Phone is sent only by open-account** (`phoneNumber`, required
+  `###-###-####`, stored on the customer); deposit and withdraw ignore it. Its State (2 letters) and ZIP (5 digits) rules still apply, so a non-US
   country will fail validation.
 - **Clear** (`clearFormFields`) empties every field, including prefilled names (a native reset would restore them).
   Country returns to `USA`, selects to their first option, and each screen removes its error message.

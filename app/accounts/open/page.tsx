@@ -29,6 +29,7 @@ export default function OpenAccountPage() {
     const body: AccountRegistrationRequest = {
       firstName: get("firstName"),
       lastName: get("lastName"),
+      phoneNumber: get("phone"),
       dateOfBirth: toApiDate(get("dateOfBirth")),
       addressLine1: get("addressLine1"),
       addressLine2: get("addressLine2") || undefined,

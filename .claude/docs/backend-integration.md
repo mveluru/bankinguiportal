@@ -35,6 +35,9 @@ Every function in `lib/api.ts`, what it calls, and which screen uses it.
 | `getHome(state?)` | `GET /bff/v1/portal/home?state=` | A | `/` (accounts plus branches/ATMs) |
 | `getOverview(accountNumber, days?)` | `GET /bff/v1/portal/accounts/{n}/overview?days=` | A | account overview, deposit, withdraw and close screens |
 | `openAccount(body)` | `POST /bff/v1/portal/accounts/open` | A | `/accounts/open` |
+| `suspendAccount(n, body)` | `POST /bff/v1/portal/accounts/{n}/suspend` | A | suspend screen. Returns the refreshed overview |
+| `updateSuspension(n, body)` | `PATCH /bff/v1/portal/accounts/{n}/suspension` | A | suspend screen (change end / notes) |
+| `reactivateAccount(n)` | `POST /bff/v1/portal/accounts/{n}/reactivate` | A | suspend screen |
 | `deposit(body)` | `POST /api/banking/v1/api/accounts/deposit` | B | deposit screen (`TransactionForm`) |
 | `withdraw(body)` | `POST /api/banking/v1/api/accounts/withdraw` | B | withdraw screen (`TransactionForm`) |
 | `getStatement(n, begin, end)` | `GET /api/banking/v1/api/accounts/{n}/statement?beginDate=&endDate=` | B | statement screen. **Side effect:** the backend also emails/SMSes the statement |
@@ -60,8 +63,12 @@ No session cookie, token or password is ever forwarded to the banking service.
   (`org.bee.banking.bff.dto`). Change it only when the backend DTO changes.
 - Withdraw, deposit and close return the raw `AccountApiResponse`, where only the balance matching the account type is
   set. `toResult` in `lib/api.ts` normalises it to `{ accountNumber, accountType, balance }`.
-- The holder form fields Middle, Country and Phone are **not** part of any request body: the backend has no fields
-  for them.
+- The holder form fields Middle and Country are **not** part of any request body: the backend has no fields for them.
+  Phone is sent as `phoneNumber` by `openAccount` only; the overview returns it masked (`maskedPhoneNumber`, last four
+  digits).
+- Account status is `ACTIVE | SUSPENDED | CLOSED`. A suspended account (`suspended`, `suspendedUntil`, null =
+  indefinite) rejects withdraw/deposit with a 400; the UI hides those actions and explains why. Home also returns
+  `totalSuspendedAccounts` and lists suspended accounts.
 - Errors are turned into a message by `errorMessage()` and thrown as `ApiError`:
   - Spring bean-validation failures arrive as JSON with `errors[].defaultMessage`; those are joined with `; `.
   - Business-rule failures arrive as plain text (or a JSON `message` / `error`) and are shown as is.

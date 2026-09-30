@@ -19,7 +19,8 @@ export function clearFormFields(form: HTMLFormElement) {
 
 /**
  * The Account holder details, Address and Contact subsections shared by the deposit, withdraw and open-account
- * forms. Middle, Country and Phone are collected but not sent: the backend has no fields for them.
+ * forms. Middle and Country are collected but not sent: the backend has no fields for them. Phone is sent by open-account only
+ * (the backend stores it on the customer); deposit and withdraw ignore it.
  */
 export default function HolderFields({
   defaultFirstName,

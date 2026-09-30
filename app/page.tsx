@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getHome } from "@/lib/api";
-import { accountLabel } from "@/lib/format";
+import { accountLabel, formatSuspendedUntil } from "@/lib/format";
 import type { PortalHomeResponse } from "@/lib/types";
 import LocationCard from "@/components/LocationCard";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
@@ -47,7 +47,7 @@ export default function HomePage() {
       {!data && !error && <Loading />}
       {data && (
         <>
-          <h2>Your accounts ({data.totalActiveAccounts} active)</h2>
+          <h2>Your accounts ({data.totalActiveAccounts} active, {data.totalSuspendedAccounts} suspended)</h2>
           {data.accounts.length === 0 ? (
             <p className="muted">
               No accounts yet. <Link href="/accounts/open">Open one</Link>.
@@ -57,6 +57,7 @@ export default function HomePage() {
               {data.accounts.map((a) => (
                 <Link key={a.accountNumber} href={`/accounts/${a.accountNumber}`} className="card">
                   <strong>{accountLabel(a.accountType)}</strong>
+                  {a.suspended && <span className="badge warn"> Suspended {formatSuspendedUntil(a.suspendedUntil)}</span>}
                   <div>{a.accountNumber}</div>
                   <div className="muted">
                     {a.firstName} {a.lastName} · opened {a.createdDate}

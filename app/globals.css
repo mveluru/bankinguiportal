@@ -22,6 +22,7 @@ h1 { margin-top:0; } h2 { margin-top:32px; }
 .muted { color:var(--muted); font-size:.9rem; }
 .error { color:var(--err); }
 .badge { font-size:.75rem; padding:2px 8px; border-radius:99px; background:var(--line); }
+.badge.warn { background:#fde68a; color:#78350f; }
 .balance { font-size:2rem; font-weight:700; }
 table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; }
 th, td { padding:8px 12px; text-align:left; border-bottom:1px solid var(--line); }
@@ -38,7 +39,7 @@ fieldset.subsection .row > label.narrow { flex:0 1 110px; }
 .req { color:var(--err); margin-left:2px; }
 .req-note { margin:0; }
 label { display:grid; gap:4px; font-size:.9rem; }
-input, select, button { font:inherit; font-size:1rem; padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+input, select, textarea, button { font:inherit; font-size:1rem; padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
 input::placeholder { color:var(--muted); opacity:1; }
 button { background:var(--brand); color:#fff; border:0; cursor:pointer; }
 .actions { justify-content:center; }

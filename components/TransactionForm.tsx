@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { deposit, getOverview, withdraw } from "@/lib/api";
-import { accountLabel, formatMoney } from "@/lib/format";
+import { accountLabel, formatMoney, formatSuspendedUntil } from "@/lib/format";
 import type { AccountOverviewResponse, AccountResult } from "@/lib/types";
 import HolderFields, { clearFormFields } from "@/components/HolderFields";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
@@ -83,13 +83,15 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
     </Link>
   );
 
-  if (account.accountStatus === "CLOSED" || !SUPPORTED.includes(account.accountType)) {
+  if (account.accountStatus !== "ACTIVE" || !SUPPORTED.includes(account.accountType)) {
     return (
       <>
         {back}
         <p className="error">
           {account.accountStatus === "CLOSED"
             ? "This account is closed and cannot be used for transactions."
+            : account.accountStatus === "SUSPENDED"
+            ? `This account is suspended ${formatSuspendedUntil(account.suspendedUntil)} and cannot be used for transactions until it is reactivated.`
             : `${accountLabel(account.accountType)} accounts don't support ${kind}s.`}
         </p>
       </>
