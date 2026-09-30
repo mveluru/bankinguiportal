@@ -10,6 +10,12 @@ import { ErrorMessage, Loading } from "@/components/StateBlock";
 
 const SUPPORTED = ["CHECKING", "SAVINGS"];
 
+/** Keeps only digits (max 10) and shows them as 123-456-7890; a hyphen appears only once more digits follow it. */
+function formatPhone(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 10);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join("-");
+}
+
 /**
  * Shared withdraw/deposit form. The backend validates (but does not use) the holder's name and
  * address, so we collect them; names are prefilled from the account overview.
@@ -207,12 +213,12 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
-                maxLength={10}
-                pattern="\d{10}"
-                placeholder="10 digits"
-                title="10-digit US phone number"
+                maxLength={12}
+                pattern="\d{3}-\d{3}-\d{4}"
+                placeholder="xxx-xxx-xxxx"
+                title="Phone number as 123-456-7890"
                 onInput={(e) => {
-                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                  e.currentTarget.value = formatPhone(e.currentTarget.value);
                 }}
               />
             </label>
