@@ -110,6 +110,7 @@ export default function AdminUsersPage() {
     }
   }
 
+  if (me && me.role !== "admin") return <ErrorMessage message="You don't have access to this page." />;
   if (!users) return error ? <ErrorMessage message={error} /> : <Loading />;
 
   const count = (pred: (u: AdminUser) => boolean) => users.filter(pred).length;

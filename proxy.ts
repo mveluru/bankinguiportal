@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
+import { roleOf } from "@/lib/users";
 
 const PUBLIC_PAGES = ["/forgot-password", "/reset-password", "/help", "/terms", "/privacy"];
 
@@ -16,7 +17,14 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/login" || pathname === "/login/verify") {
     return session ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();
   }
-  if (session) return NextResponse.next();
+  if (session) {
+    // Admin pages are for admins only. The role is read from configuration, not the token. /api/admin/* is checked
+    // again in the handlers (requireAdmin), which is the real access control; this keeps everyone else off the page.
+    if ((pathname === "/admin" || pathname.startsWith("/admin/")) && roleOf(session.username) !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ message: "Not signed in." }, { status: 401 });

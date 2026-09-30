@@ -5,7 +5,8 @@ signed *pending* cookie and go to `/login/verify`; otherwise issue the session c
 
 **Every request.** `proxy.ts` verifies the session cookie. Public pages and auth endpoints pass; everything else
 redirects to `/login` (pages) or returns 401 (`/api/*`). `verifySessionToken` also rejects sessions for disabled or
-revoked accounts, so an admin action takes effect on the user's next request.
+revoked accounts, so an admin action takes effect on the user's next request. Admin pages (`/admin/*`)
+are redirected to `/` for non-admins here, and `/api/admin/*` returns 403 from `requireAdmin` (audited).
 
 **Money operations.** Page → `lib/api.ts` → Spring BFF (or `/api/banking/*` rewrite). The Spring service is not
 authenticated; the customer ID header is only a rate-limit key.
