@@ -14,7 +14,7 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   /** Re-reads the session user (e.g. after editing the profile). */
   refresh: () => Promise<void>;
@@ -51,11 +51,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [apply]);
 
   const login = useCallback(
-    async (username: string, password: string) => {
+    async (username: string, password: string, remember = false) => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, remember }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message ?? "Sign in failed.");

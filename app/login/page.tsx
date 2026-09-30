@@ -19,7 +19,7 @@ function LoginForm() {
     setSubmitting(true);
     setError(null);
     try {
-      await login(String(f.get("username")).trim(), String(f.get("password")));
+      await login(String(f.get("username")).trim(), String(f.get("password")), f.get("remember") === "on");
       // Only follow same-site relative redirects.
       const next = params.get("next");
       router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
@@ -39,6 +39,10 @@ function LoginForm() {
       <label>
         Password
         <input name="password" type="password" required autoComplete="current-password" />
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input name="remember" type="checkbox" style={{ width: "auto" }} />
+        Remember me on this device
       </label>
       {error && <ErrorMessage message={error} />}
       <button type="submit" disabled={submitting}>
