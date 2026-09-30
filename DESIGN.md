@@ -128,11 +128,33 @@ handlers, `proxy.ts`, or server components.
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |
 | `ThemePicker.tsx` | client | System/Light/Dark selector on the settings page; same storage as the toggle. |
-| `TransactionForm.tsx` | client | Shared withdraw/deposit form. |
+| `TransactionForm.tsx` | client | Shared withdraw/deposit form; see [Transaction form layout](#transaction-form-layout). |
 | `LocationCard.tsx` | server | One branch/ATM card on the home page. |
 | `StateBlock.tsx` | server | `Loading` and `ErrorMessage` placeholders for fetch states. |
 | `HelpCenter.tsx` | client | Searchable FAQ using native `<details>`. |
 | `LegalDocument.tsx` | server | Renders a legal document with contents list and numbered sections. |
+
+### Transaction form layout
+
+`TransactionForm` serves both `/accounts/[accountNumber]/deposit` and `/withdraw` (`kind` prop), so any layout change
+applies to both screens. Top to bottom:
+
+1. Amount, and Deposit type (deposit only).
+2. **Account holder details** subsection: a red `* indicates required` note, then First name\*, Middle and Last name\*
+   in one row. First and last names are prefilled from the account overview.
+3. **Address** subsection, fields in horizontal rows that wrap on narrow screens:
+   Street\*, Address line 1\*, Address line 2, then City\*, State\*, ZIP\*, Country\* (default `USA`).
+4. Error message, then the Deposit / Withdraw button.
+
+Details:
+
+- **ZIP** accepts digits only: an `onInput` handler strips anything else as it is typed, it is capped at 5 characters,
+  and `inputMode="numeric"` brings up the numeric keypad on phones.
+- **Middle and Country are UI-only.** The backend (`AccountHolderDetails` in `lib/types.ts`) has no fields for them, so
+  they are collected but not sent. Its State (2 letters) and ZIP (5 digits) rules still apply, so a non-US country
+  will fail validation.
+- **Styling** lives in `app/globals.css`: `form.stack.wide` (wider form), `fieldset.subsection` (bordered group),
+  `.req` (red asterisk), and `.narrow` labels (State, ZIP). Fields flex within `.row`.
 
 ## 6. Key flows
 
