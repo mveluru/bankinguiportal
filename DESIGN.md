@@ -144,7 +144,7 @@ applies to both screens. Top to bottom:
    in one row. First and last names are prefilled from the account overview.
 3. **Address** subsection, fields in horizontal rows that wrap on narrow screens:
    Street\*, Address line 1\*, Address line 2, then City\*, State\*, ZIP\*, Country\* (default `USA`).
-4. **Contact** subsection: Phone number (optional).
+4. **Contact** subsection: Phone number\* (required).
 5. Error message, then a centred button row: Deposit / Withdraw and **Clear**, both in the brand blue.
 
 Details:
@@ -152,8 +152,8 @@ Details:
 - **ZIP** accepts digits only: an `onInput` handler strips anything else as it is typed, it is capped at 5 characters,
   and `inputMode="numeric"` brings up the numeric keypad on phones.
 - **Phone number** shows a grey `xxx-xxx-xxxx` placeholder. Only digits and hyphens can end up in the box: an `onInput`
-  handler (`formatPhone`) keeps the digits (max 10) and inserts the hyphens itself. It must match `123-456-7890` if
-  filled in; empty is allowed.
+  handler (`formatPhone`) keeps the digits (max 10) and inserts the hyphens itself. It is required and must match
+  `123-456-7890`.
 - **Middle, Country and Phone are UI-only.** The backend (`AccountHolderDetails` in `lib/types.ts`) has no fields for them, so
   they are collected but not sent. Its State (2 letters) and ZIP (5 digits) rules still apply, so a non-US country
   will fail validation.

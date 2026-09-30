@@ -207,9 +207,10 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
           <legend>Contact</legend>
           <div className="row">
             <label className="narrow-phone">
-              Phone number
+              <span>Phone number<span className="req">*</span></span>
               <input
                 name="phone"
+                required
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
