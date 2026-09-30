@@ -114,7 +114,7 @@ export interface DepositRequest extends AccountHolderDetails {
   depositType: "cash" | "check";
 }
 
-/** Raw Account returned by withdraw/deposit: only the balance matching the account type is set. */
+/** Raw Account returned by close (the only call still on the proxy): only the balance matching the account type is set. */
 export interface AccountApiResponse {
   checkingAccountNumber: string | null;
   savingAccountNumber: string | null;

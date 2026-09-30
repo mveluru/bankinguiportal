@@ -80,7 +80,7 @@ export const updateSuspension = (accountNumber: string, body: UpdateSuspensionRe
 export const reactivateAccount = (accountNumber: string) =>
   request<AccountOverviewResponse>(`${accountPath(accountNumber)}/reactivate`, { method: "POST" });
 
-// Non-BFF endpoints go through the Next.js rewrite (same origin, so no CORS).
+// Endpoints with no BFF equivalent (statement, close) go through the Next.js rewrite (same origin, so no CORS).
 const PROXY = "/api/banking";
 
 const toResult = (a: AccountApiResponse): AccountResult => ({
@@ -89,15 +89,24 @@ const toResult = (a: AccountApiResponse): AccountResult => ({
   balance: (a.checkingBalance ?? a.savingBalance) as number,
 });
 
+const overviewToResult = (o: AccountOverviewResponse): AccountResult => ({
+  accountNumber: o.accountNumber,
+  accountType: o.accountType,
+  balance: o.balance,
+});
+
+// BFF endpoints: the backend validates the holder's name and address, and returns the refreshed overview.
 export const withdraw = (body: WithdrawRequest) =>
-  request<AccountApiResponse>("/v1/api/accounts/withdraw", { method: "POST", body: JSON.stringify(body) }, PROXY).then(
-    toResult,
-  );
+  request<AccountOverviewResponse>("/bff/v1/portal/accounts/withdraw", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }).then(overviewToResult);
 
 export const deposit = (body: DepositRequest) =>
-  request<AccountApiResponse>("/v1/api/accounts/deposit", { method: "POST", body: JSON.stringify(body) }, PROXY).then(
-    toResult,
-  );
+  request<AccountOverviewResponse>("/bff/v1/portal/accounts/deposit", {
+    method: "POST",
+    body: JSON.stringify(body),
+  }).then(overviewToResult);
 
 /** Side effect: the backend emails/SMSes the statement, so only call this on an explicit user action. */
 export const getStatement = (accountNumber: string, beginDate: string, endDate: string) =>

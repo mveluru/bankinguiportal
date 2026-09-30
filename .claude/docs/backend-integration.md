@@ -38,8 +38,8 @@ Every function in `lib/api.ts`, what it calls, and which screen uses it.
 | `suspendAccount(n, body)` | `POST /bff/v1/portal/accounts/{n}/suspend` | A | suspend screen. Returns the refreshed overview |
 | `updateSuspension(n, body)` | `PATCH /bff/v1/portal/accounts/{n}/suspension` | A | suspend screen (change end / notes) |
 | `reactivateAccount(n)` | `POST /bff/v1/portal/accounts/{n}/reactivate` | A | suspend screen |
-| `deposit(body)` | `POST /api/banking/v1/api/accounts/deposit` | B | deposit screen (`TransactionForm`) |
-| `withdraw(body)` | `POST /api/banking/v1/api/accounts/withdraw` | B | withdraw screen (`TransactionForm`) |
+| `deposit(body)` | `POST /bff/v1/portal/accounts/deposit` | A | deposit screen (`TransactionForm`) |
+| `withdraw(body)` | `POST /bff/v1/portal/accounts/withdraw` | A | withdraw screen (`TransactionForm`) |
 | `getStatement(n, begin, end)` | `GET /api/banking/v1/api/accounts/{n}/statement?beginDate=&endDate=` | B | statement screen. **Side effect:** the backend also emails/SMSes the statement |
 | `closeAccount(n)` | `POST /api/banking/v1/api/accounts/{n}/close` | B | close screen. **Irreversible:** no reopen, and no zero-balance check |
 
@@ -61,7 +61,8 @@ No session cookie, token or password is ever forwarded to the banking service.
 
 - Request and response shapes live in `lib/types.ts`, which mirrors the BFF DTOs
   (`org.bee.banking.bff.dto`). Change it only when the backend DTO changes.
-- Withdraw, deposit and close return the raw `AccountApiResponse`, where only the balance matching the account type is
+- Withdraw and deposit (BFF) return the refreshed `AccountOverviewResponse`; `lib/api.ts` reduces it to `AccountResult`.
+  Close (proxy) returns the raw `AccountApiResponse`, where only the balance matching the account type is
   set. `toResult` in `lib/api.ts` normalises it to `{ accountNumber, accountType, balance }`.
 - The holder form fields Middle and Country are **not** part of any request body: the backend has no fields for them.
   Phone is sent as `phoneNumber` by `openAccount` only; the overview returns it masked (`maskedPhoneNumber`, last four
