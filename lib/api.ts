@@ -82,3 +82,11 @@ export const getStatement = (accountNumber: string, beginDate: string, endDate: 
     undefined,
     PROXY,
   );
+
+/** Irreversible: the backend has no reopen operation and does not require a zero balance. */
+export const closeAccount = (accountNumber: string) =>
+  request<AccountApiResponse>(
+    `/v1/api/accounts/${encodeURIComponent(accountNumber)}/close`,
+    { method: "POST" },
+    PROXY,
+  ).then(toResult);

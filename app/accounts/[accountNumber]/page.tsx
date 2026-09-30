@@ -44,6 +44,7 @@ export default function AccountPage() {
         <div className="row" style={{ marginTop: 12 }}>
           <Link href={`/accounts/${data.accountNumber}/deposit`} className="btn">Deposit</Link>
           <Link href={`/accounts/${data.accountNumber}/withdraw`} className="btn">Withdraw</Link>
+          <Link href={`/accounts/${data.accountNumber}/close`} className="btn danger">Close account</Link>
         </div>
       )}
 

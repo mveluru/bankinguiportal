@@ -29,3 +29,4 @@ button:disabled { opacity:.6; cursor:default; }
 .row { display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
 a.btn { display:inline-block; padding:8px 16px; border-radius:6px; background:var(--brand); color:#fff; }
 a.btn:hover { text-decoration:none; opacity:.9; }
+a.btn.danger, button.danger { background:var(--err); color:#fff; }
