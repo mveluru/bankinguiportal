@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { hardNavigate } from "@/lib/navigation";
 import { ErrorMessage } from "@/components/StateBlock";
 
 function LoginForm() {
@@ -19,10 +20,16 @@ function LoginForm() {
     setSubmitting(true);
     setError(null);
     try {
-      await login(String(f.get("username")).trim(), String(f.get("password")), f.get("remember") === "on");
+      const { twoFactorRequired } = await login(
+        String(f.get("username")).trim(),
+        String(f.get("password")),
+        f.get("remember") === "on",
+      );
       // Only follow same-site relative redirects.
       const next = params.get("next");
-      router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
+      const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      if (twoFactorRequired) router.replace(`/login/verify?next=${encodeURIComponent(target)}`);
+      else hardNavigate(target);
     } catch (err) {
       setError((err as Error).message);
       setSubmitting(false);

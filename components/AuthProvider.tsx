@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { setCustomerId } from "@/lib/api";
+import { hardNavigate } from "@/lib/navigation";
 
 interface AuthUser {
   username: string;
@@ -14,7 +14,10 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (username: string, password: string, remember?: boolean) => Promise<void>;
+  /** Resolves { twoFactorRequired: true } when a code is still needed (no session yet). */
+  login: (username: string, password: string, remember?: boolean) => Promise<{ twoFactorRequired: boolean }>;
+  /** Second sign-in step: submits a code (or recovery code) for the pending 2FA sign-in. */
+  verifyTwoFactor: (code: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Re-reads the session user (e.g. after editing the profile). */
   refresh: () => Promise<void>;
@@ -33,7 +36,6 @@ export const useAuth = () => {
 };
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +61,22 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.message ?? "Sign in failed.");
+      if (body.twoFactorRequired) return { twoFactorRequired: true };
+      apply(body);
+      return { twoFactorRequired: false };
+    },
+    [apply],
+  );
+
+  const verifyTwoFactor = useCallback(
+    async (code: string) => {
+      const res = await fetch("/api/auth/2fa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.message ?? "Verification failed.");
       apply(body);
     },
     [apply],
@@ -80,14 +98,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const expireSession = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     apply(null);
-    router.replace("/login?expired=1");
-  }, [apply, router]);
+    hardNavigate("/login?expired=1");
+  }, [apply]);
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     apply(null);
-    router.replace("/login");
-  }, [apply, router]);
+    hardNavigate("/login");
+  }, [apply]);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, refresh, extendSession, expireSession }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, verifyTwoFactor, logout, refresh, extendSession, expireSession }}>{children}</AuthContext.Provider>;
 }

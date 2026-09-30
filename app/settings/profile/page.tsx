@@ -89,7 +89,8 @@ export default function ProfilePage() {
       </form>
 
       <p>
-        <Link href="/settings/password">Change password</Link>
+        <Link href="/settings/password">Change password</Link> ·{" "}
+        <Link href="/settings/two-factor">Two-factor authentication</Link>
       </p>
     </>
   );

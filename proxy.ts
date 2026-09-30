@@ -10,7 +10,7 @@ export async function proxy(request: NextRequest) {
   // Reachable while signed out (and signed in: a reset link should work in any browser state).
   if (pathname === "/forgot-password" || pathname === "/reset-password") return NextResponse.next();
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/login/verify") {
     return session ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();
   }
   if (session) return NextResponse.next();
