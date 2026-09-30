@@ -6,6 +6,7 @@ import { openAccount } from "@/lib/api";
 import { accountLabel } from "@/lib/format";
 import type { AccountRegistrationRequest, OpenAccountResponse } from "@/lib/types";
 import LocationCard from "@/components/LocationCard";
+import HolderFields, { clearFormFields } from "@/components/HolderFields";
 import { ErrorMessage } from "@/components/StateBlock";
 
 const ACCOUNT_TYPES = ["CHECKING", "SAVINGS", "INVESTMENT", "RETIREMENT", "CREDIT_OR_LOAN"];
@@ -70,16 +71,7 @@ export default function OpenAccountPage() {
   return (
     <>
       <h1>Open an account</h1>
-      <form className="stack" onSubmit={onSubmit}>
-        <label>First name<input name="firstName" required maxLength={50} /></label>
-        <label>Last name<input name="lastName" required maxLength={50} /></label>
-        <label>Date of birth<input name="dateOfBirth" type="date" required min="1940-01-01" /></label>
-        <label>Address line 1<input name="addressLine1" required maxLength={50} /></label>
-        <label>Address line 2<input name="addressLine2" /></label>
-        <label>Street<input name="street" required /></label>
-        <label>City<input name="city" required /></label>
-        <label>State<input name="state" required maxLength={2} pattern="[A-Za-z]{2}" placeholder="TX" /></label>
-        <label>ZIP<input name="zip" required pattern="\d{5}" maxLength={5} /></label>
+      <form className="stack wide" onSubmit={onSubmit}>
         <label>
           Account type
           <select name="accountType" defaultValue="CHECKING">
@@ -88,12 +80,25 @@ export default function OpenAccountPage() {
             ))}
           </select>
         </label>
+        <HolderFields showDob />
         {error && <ErrorMessage message={error} />}
         <p className="muted" style={{ margin: 0 }}>
           By opening an account you agree to the <Link href="/terms">Terms of Use</Link> and acknowledge the{" "}
           <Link href="/privacy">Privacy Policy</Link>.
         </p>
-        <button type="submit" disabled={submitting}>{submitting ? "Opening…" : "Open account"}</button>
+        <div className="row actions">
+          <button type="submit" disabled={submitting}>{submitting ? "Opening…" : "Open account"}</button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={(e) => {
+              clearFormFields(e.currentTarget.form!);
+              setError(null);
+            }}
+          >
+            Clear
+          </button>
+        </div>
       </form>
     </>
   );

@@ -32,6 +32,7 @@ form.stack.wide { max-width:720px; }
 fieldset.subsection { border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:0; display:grid; gap:12px; background:var(--card); min-width:0; }
 fieldset.subsection legend { padding:0 6px; font-weight:600; }
 fieldset.subsection .row > label { flex:1 1 150px; }
+fieldset.subsection .row > label.narrow-dob { flex:0 1 200px; }
 fieldset.subsection .row > label.narrow-phone { flex:0 1 220px; }
 fieldset.subsection .row > label.narrow { flex:0 1 110px; }
 .req { color:var(--err); margin-left:2px; }
