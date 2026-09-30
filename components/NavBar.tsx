@@ -77,7 +77,7 @@ export default function NavBar() {
         >
           <Link href="/">Home</Link>
           <Link href="/accounts/open">Open an account</Link>
-          {user.role === "admin" && <Link href="/admin/users">Admin</Link>}
+          {user.role === "admin" && <Link href="/admin/users">UserMgnt</Link>}
           <Link href="/notifications" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
             Notifications
             {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}

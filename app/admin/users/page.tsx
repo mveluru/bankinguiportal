@@ -119,7 +119,7 @@ export default function AdminUsersPage() {
     <>
       <h1>User management</h1>
       <p className="muted">
-        {users.length} users · {count((u) => u.role === "admin")} admin · {count((u) => u.twoFactorEnabled)} with
+        {users.length} users · {count((u) => u.role === "admin")} Admin · {count((u) => u.twoFactorEnabled)} with
         two-factor · {count((u) => u.locked)} locked · {count((u) => u.disabled)} disabled
       </p>
 
