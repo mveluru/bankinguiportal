@@ -59,6 +59,54 @@ npm run build && npm start   # serves on http://localhost:3000; stop it the same
 
 The backend (port 8081) is a separate process; stopping the portal does not stop it.
 
+## Deploy
+
+`node_modules/` and `.next/` are not in git (gitignored). The repo holds `package.json` (what to install) and
+`package-lock.json` (the exact versions and hashes), so every machine downloads the packages itself from the npm
+registry and builds the app.
+
+Requirements: Node.js 20.9 or newer (Next 16's minimum) and network access to the npm registry (or a mirror) during
+install.
+
+```bash
+git clone <repo> && cd bankinguiportal
+npm ci               # installs exactly what package-lock.json says (use this, not `npm install`, on servers/CI)
+# set the environment (see below), then:
+npm run build        # compiles the app into .next/
+npm start            # serves on http://localhost:3000 (run with PORT=... to change it)
+```
+
+How the app finds its packages: Node resolves imports such as `react` and `next` from `./node_modules`, both at build
+time and at runtime, so a production host needs `node_modules/` (at least the runtime dependencies) and `.next/`
+side by side. The browser never sees `node_modules`: Next bundles the client code into `.next/static`.
+
+Build once and ship, instead of building on the server:
+1. CI runs `npm ci && npm run build`.
+2. Deploy `.next/`, `public/`, `package.json`, `package-lock.json` and `next.config.ts`, then run
+   `npm ci --omit=dev` on the target (skips dev tools such as TypeScript and ESLint) and `npm start`.
+   In a Docker image, do the same in a multi-stage build so the final image has no dev dependencies.
+
+`output: "standalone"` in `next.config.ts` is a smaller alternative (Next copies only the files the server needs,
+including a trimmed `node_modules`). It is not enabled today, and `public/` and `.next/static` must then be copied
+next to the standalone server.
+
+### Production checklist
+
+- **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. Required in
+  production: `AUTH_SECRET` (a long random string; changing it later disables existing 2FA setups). Also set
+  `DEMO_USERS` (the default demo passwords are public), `NEXT_PUBLIC_API_BASE_URL`, `BANKING_BACKEND_URL` and any of
+  the optional ones in `.env.local.example`.
+- **Build-time vs start-time:** `NEXT_PUBLIC_*` values are baked into the browser bundle during `npm run build`, so set
+  them *before* building. `BANKING_BACKEND_URL` and the other server variables are read when the server starts.
+- **Persistent `.data/`:** users, 2FA, lockouts, preferences and the audit log live in `.data/` under the working
+  directory. Mount a persistent, writable volume there, or a redeploy or container restart loses them.
+- **Banking backend:** it must be reachable from the browser (for `NEXT_PUBLIC_API_BASE_URL`, with this site's origin
+  in its `banking.portal.allowed-origins`) and from the Next server (for `BANKING_BACKEND_URL`). It does not
+  authenticate requests, so restrict network access to it.
+- **HTTPS:** serve behind a TLS-terminating proxy; the session cookie is marked Secure in production. Client IPs in the
+  audit log come from `X-Forwarded-For` / `X-Real-IP`, which are only trustworthy behind a proxy you control.
+- **Login is a front-end-only demo**, not real security (see Notes below). It is not suitable for real customers as is.
+
 ## Docs
 
 Architecture and per-layer reference live in [`.claude/docs/`](.claude/docs/index.md) (start with `overview.md`). Rules
