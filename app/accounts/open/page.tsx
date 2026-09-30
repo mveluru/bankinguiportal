@@ -89,6 +89,10 @@ export default function OpenAccountPage() {
           </select>
         </label>
         {error && <ErrorMessage message={error} />}
+        <p className="muted" style={{ margin: 0 }}>
+          By opening an account you agree to the <Link href="/terms">Terms of Use</Link> and acknowledge the{" "}
+          <Link href="/privacy">Privacy Policy</Link>.
+        </p>
         <button type="submit" disabled={submitting}>{submitting ? "Opening…" : "Open account"}</button>
       </form>
     </>

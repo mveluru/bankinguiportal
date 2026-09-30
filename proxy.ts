@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
+const PUBLIC_PAGES = ["/forgot-password", "/reset-password", "/help", "/terms", "/privacy"];
+
 /** Gate every page and the /api/banking proxy behind the demo session (login + auth endpoints stay open). */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 
-  // Reachable while signed out (and signed in: a reset link should work in any browser state). /help is public
-  // because people who can't sign in are exactly who needs it.
-  if (pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/help") return NextResponse.next();
+  // Reachable signed out or in (a reset link should work in any browser state; help and the legal pages are public
+  // because the people who can't sign in are exactly who needs them).
+  if (PUBLIC_PAGES.includes(pathname)) return NextResponse.next();
 
   if (pathname === "/login" || pathname === "/login/verify") {
     return session ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();

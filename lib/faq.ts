@@ -1,3 +1,4 @@
+import { duration, num, plural } from "@/lib/duration";
 import { RESET_TTL_MINUTES } from "@/lib/resets";
 import { LOCKOUT_MS, MAX_FAILURES } from "@/lib/twofactor";
 import { MIN_PASSWORD_LENGTH } from "@/lib/users";
@@ -18,13 +19,6 @@ export const FAQ_CATEGORIES = [
   "Notifications & settings",
   "Troubleshooting",
 ] as const;
-
-const num = (v: string | undefined, fallback: number) => Number(v) || fallback;
-const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
-const duration = (seconds: number) =>
-  seconds % 86400 === 0 ? plural(seconds / 86400, "day")
-    : seconds % 3600 === 0 ? plural(seconds / 3600, "hour")
-    : plural(Math.max(1, Math.round(seconds / 60)), "minute");
 
 /**
  * The help content. Numbers that come from configuration (lockout, session lengths, ...) are read from the
@@ -162,6 +156,19 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       links: [
         { href: "/notifications", label: "Notifications" },
         { href: "/settings/activity", label: "Sign-in activity" },
+      ],
+    },
+    {
+      id: "your-data",
+      category: "Signing in & security",
+      question: "What information does the portal keep about me?",
+      answer: [
+        "Your profile (display name and optional email), your security settings, your preferences, and a log of sign-in and security events with the time, IP address and device. Your accounts and transactions stay in the bank's banking service.",
+        "The Privacy Policy lists everything, why it's kept, how long, and who can see it. The Terms of Use explain the rules for using the portal.",
+      ],
+      links: [
+        { href: "/privacy", label: "Privacy Policy" },
+        { href: "/terms", label: "Terms of Use" },
       ],
     },
     {

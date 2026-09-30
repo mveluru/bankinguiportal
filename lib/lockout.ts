@@ -77,7 +77,10 @@ export function registerFailure(username: string): LockState {
 
 export function clearFailures(username: string) {
   const all = read();
-  if (delete all[keyOf(username)]) write(all);
+  const key = keyOf(username);
+  if (!(key in all)) return; // nothing to clear, so don't rewrite the file on every successful sign-in
+  delete all[key];
+  write(all);
 }
 
 /** 429 response for a locked name; the same text is used for real and unknown usernames. */

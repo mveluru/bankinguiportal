@@ -6,10 +6,10 @@
 }
 :root[data-theme="dark"] { color-scheme: dark; --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
 * { box-sizing: border-box; }
-body { margin:0; background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; line-height:1.5; }
+body { margin:0; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; line-height:1.5; }
 a { color:var(--brand); text-decoration:none; }
 a:hover { text-decoration:underline; }
-main { max-width:960px; margin:0 auto; padding:24px 16px; }
+main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .topbar { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--card); border-bottom:1px solid var(--line); }
 .topbar nav { order:2; margin-left:auto; display:flex; align-items:center; gap:16px; }
 .topbar-actions { order:3; display:flex; align-items:center; gap:8px; }
@@ -76,6 +76,17 @@ details.faq[open] > summary { border-bottom:1px solid var(--line); }
 .faq-body p { margin:0 0 10px; }
 .faq-links { display:flex; flex-wrap:wrap; gap:0 20px; }
 
+/* ---- Legal pages + footer ---- */
+.site-footer { border-top:1px solid var(--line); background:var(--card); }
+.site-footer nav { max-width:960px; margin:0 auto; padding:8px 16px; display:flex; flex-wrap:wrap; gap:0 20px; justify-content:center; }
+article.legal { max-width:760px; }
+article.legal h2 { margin-top:28px; font-size:1.25rem; }
+article.legal ul { padding-left:1.25rem; }
+article.legal li { margin-bottom:6px; }
+.toc { display:flex; flex-wrap:wrap; gap:4px 16px; margin:16px 0 8px; padding:8px 12px; background:var(--card); border:1px solid var(--line); border-radius:8px; font-size:.95rem; }
+.template-notice { padding:10px 14px; border:1px solid var(--line); border-left:4px solid var(--err); border-radius:8px; background:var(--card); font-size:.95rem; }
+table.legal-table th, table.legal-table td { vertical-align:top; }
+
 /* ---- Responsive ---- */
 code { overflow-wrap:anywhere; }
 td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date across lines */
@@ -124,4 +135,7 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
   table.stack-sm td:last-child { border-bottom:0; }
   table.stack-sm td::before { content:attr(data-label); font-size:.9rem; font-weight:600; color:var(--muted); text-align:left; flex-shrink:0; }
   table.stack-sm td > .row { justify-content:flex-end; }
+  /* Legal tables: the first cell is the row's name, so show it as the card heading instead of a label/value pair. */
+  table.legal-table td:first-child { justify-content:flex-start; text-align:left; font-size:1.05rem; background:var(--bg); border-radius:8px 8px 0 0; }
+  table.legal-table td:first-child::before { display:none; }
 }

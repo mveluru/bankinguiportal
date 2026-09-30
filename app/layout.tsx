@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
 import SessionTimeout from "@/components/SessionTimeout";
@@ -25,6 +26,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <NavBar />
           <SessionTimeout />
           <main>{children}</main>
+          <footer className="site-footer">
+            <nav aria-label="Legal and help">
+              <Link href="/terms" className="tap">
+                Terms
+              </Link>
+              <Link href="/privacy" className="tap">
+                Privacy
+              </Link>
+              <Link href="/help" className="tap">
+                Help
+              </Link>
+            </nav>
+          </footer>
         </AuthProvider>
       </body>
     </html>
