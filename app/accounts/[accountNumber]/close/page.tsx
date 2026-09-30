@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { closeAccount, getOverview } from "@/lib/api";
 import { accountLabel, formatMoney } from "@/lib/format";
 import type { AccountOverviewResponse } from "@/lib/types";
@@ -15,6 +15,7 @@ export default function CloseAccountPage() {
   const [closed, setClosed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,8 +27,13 @@ export default function CloseAccountPage() {
     };
   }, [accountNumber]);
 
-  async function onSubmit(e: React.FormEvent) {
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    dialog.current?.showModal();
+  }
+
+  async function onConfirm() {
+    dialog.current?.close();
     setSubmitting(true);
     setError(null);
     try {
@@ -98,6 +104,21 @@ export default function CloseAccountPage() {
           {submitting ? "Closing…" : "Permanently close account"}
         </button>
       </form>
+
+      <dialog ref={dialog} className="confirm" aria-labelledby="close-confirm-title">
+        <h2 id="close-confirm-title" style={{ marginTop: 0 }}>Close this account?</h2>
+        <p className="muted">
+          Account {account.accountNumber} will be closed permanently. This cannot be undone.
+        </p>
+        <div className="row" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="secondary" onClick={() => dialog.current?.close()}>
+            No
+          </button>
+          <button type="button" className="danger" onClick={onConfirm}>
+            Yes
+          </button>
+        </div>
+      </dialog>
     </>
   );
 }
