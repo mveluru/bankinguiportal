@@ -109,7 +109,7 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
       <p className="muted">
         {accountLabel(account.accountType)} {account.accountNumber} · balance {formatMoney(account.balance)}
       </p>
-      <form className="stack" onSubmit={onSubmit}>
+      <form className="stack wide" onSubmit={onSubmit}>
         <label>
           Amount (USD)
           <input name="amount" type="number" step="0.01" min="0.01" required />
@@ -123,15 +123,67 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
             </select>
           </label>
         )}
-        <h2 style={{ margin: "8px 0 0" }}>Account holder</h2>
-        <label>First name<input name="firstName" required maxLength={50} pattern="[A-Za-z]+" defaultValue={account.firstName} /></label>
-        <label>Last name<input name="lastName" required maxLength={25} pattern="[A-Za-z]+" defaultValue={account.lastName} /></label>
-        <label>Street<input name="street" required /></label>
-        <label>Address line 1<input name="addressLine1" required maxLength={50} /></label>
-        <label>Address line 2<input name="addressLine2" /></label>
-        <label>City<input name="city" required maxLength={50} /></label>
-        <label>State<input name="state" required maxLength={2} pattern="[A-Za-z]{2}" placeholder="TX" /></label>
-        <label>ZIP<input name="zip" required pattern="\d{5}" maxLength={5} /></label>
+        <fieldset className="subsection">
+          <legend>Account holder details</legend>
+          <p className="muted req-note">
+            <span className="req">*</span> indicates required
+          </p>
+          <div className="row">
+            <label>
+              <span>First name<span className="req">*</span></span>
+              <input name="firstName" required maxLength={50} pattern="[A-Za-z]+" defaultValue={account.firstName} />
+            </label>
+            <label>
+              Middle
+              <input name="middleName" maxLength={50} />
+            </label>
+            <label>
+              <span>Last name<span className="req">*</span></span>
+              <input name="lastName" required maxLength={25} pattern="[A-Za-z]+" defaultValue={account.lastName} />
+            </label>
+          </div>
+        </fieldset>
+        <fieldset className="subsection">
+          <legend>Address</legend>
+          <div className="row">
+            <label>
+              <span>Street<span className="req">*</span></span>
+              <input name="street" required />
+            </label>
+            <label>
+              <span>Address line 1<span className="req">*</span></span>
+              <input name="addressLine1" required maxLength={50} />
+            </label>
+            <label>
+              Address line 2
+              <input name="addressLine2" />
+            </label>
+          </div>
+          <div className="row">
+            <label>
+              <span>City<span className="req">*</span></span>
+              <input name="city" required maxLength={50} />
+            </label>
+            <label className="narrow">
+              <span>State<span className="req">*</span></span>
+              <input name="state" required maxLength={2} pattern="[A-Za-z]{2}" placeholder="TX" />
+            </label>
+            <label className="narrow">
+              <span>ZIP<span className="req">*</span></span>
+              <input
+                name="zip"
+                required
+                pattern="\d{5}"
+                maxLength={5}
+                inputMode="numeric"
+                autoComplete="postal-code"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                }}
+              />
+            </label>
+          </div>
+        </fieldset>
         {error && <ErrorMessage message={error} />}
         <button type="submit" disabled={submitting}>
           {submitting ? "Submitting…" : isWithdraw ? "Withdraw" : "Deposit"}
