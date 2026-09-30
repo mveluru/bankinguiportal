@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -42,6 +43,9 @@ function LoginForm() {
       <button type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
       </button>
+      <p>
+        <Link href="/forgot-password">Forgot password?</Link>
+      </p>
       <p className="muted">Demo login only. Accounts are configured in DEMO_USERS.</p>
     </form>
   );

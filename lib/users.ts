@@ -77,7 +77,14 @@ export function changePassword(username: string, current: string, next: string):
   if (next.length < MIN_PASSWORD_LENGTH) return "too-short";
   if (next === current) return "same-as-current";
 
-  const salt = randomBytes(16).toString("hex");
-  writeOverrides({ ...readOverrides(), [username]: { salt, hash: hashPassword(next, salt) } });
+  setPassword(username, next);
   return "ok";
 }
+
+/** Unconditionally sets a user's password (callers must have authorised it: current password or reset token). */
+export function setPassword(username: string, password: string) {
+  const salt = randomBytes(16).toString("hex");
+  writeOverrides({ ...readOverrides(), [username]: { salt, hash: hashPassword(password, salt) } });
+}
+
+export const userExists = (username: string) => demoUsers().some((u) => u.username === username);
