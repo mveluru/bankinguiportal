@@ -11,7 +11,7 @@ never call the banking service; they only serve the demo identity layer (see [ap
 
 ```
                        ┌──────────────────────────── Path A: BFF (direct, CORS) ───────────────────────────┐
-Browser ─ lib/api.ts ──┤  fetch NEXT_PUBLIC_API_BASE_URL + /bff/v1/portal/...  ──────────────► Spring :8081 │
+Browser ─ lib/api.ts ──┤  fetch NEXT_PUBLIC_API_BASE_URL + NEXT_PUBLIC_BFF_PORTAL_PATH (/bff/v1/portal)/...  ──────────────► Spring :8081 │
  (client components)   │                                                                                    │
                        └──────────────────────── Path B: same-origin proxy (rewrite) ──────────────────────┘
                           fetch /api/banking/v1/api/...  ─► proxy.ts (session check) ─► next.config.ts rewrite
@@ -24,7 +24,7 @@ Browser ─ lib/api.ts ──┤  fetch NEXT_PUBLIC_API_BASE_URL + /bff/v1/porta
 | Endpoints | `/bff/v1/portal/*`, built for this UI, one call per screen | `/v1/api/accounts/*`, the general banking API |
 | Why | The backend enables CORS for `/bff/**` only (origin allow-list `banking.portal.allowed-origins`, includes `http://localhost:3000`) | No CORS on these endpoints, so the browser calls its own origin and Next forwards the request server-side |
 | Session gate | None. The browser talks straight to Spring | `proxy.ts` returns 401 JSON if the session cookie is missing or invalid |
-| Env var | `NEXT_PUBLIC_API_BASE_URL` (public: inlined into the browser bundle) | `BANKING_BACKEND_URL` (server-side only, read in `next.config.ts`) |
+| Env var | `NEXT_PUBLIC_API_BASE_URL` (public: inlined into the browser bundle); the path prefix `/bff/v1/portal` comes from `NEXT_PUBLIC_BFF_PORTAL_PATH` (same default) | `BANKING_BACKEND_URL` (server-side only, read in `next.config.ts`) |
 
 The rewrite is defined in `next.config.ts`: `/api/banking/:path*` → `${BANKING_BACKEND_URL}/:path*`
 (default `http://localhost:8081/brite`).

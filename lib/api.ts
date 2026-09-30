@@ -12,6 +12,8 @@ import type {
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8081/brite";
+// Path prefix of the backend's BFF endpoints, per environment (NEXT_PUBLIC_*: inlined at build time).
+const PORTAL = (process.env.NEXT_PUBLIC_BFF_PORTAL_PATH ?? "/bff/v1/portal").replace(/\/+$/, "");
 // Set from the logged-in user by AuthProvider; falls back to the env default (rate-limit key only).
 let customerId = process.env.NEXT_PUBLIC_CUSTOMER_ID ?? "demo-customer";
 export const setCustomerId = (id: string | null) => {
@@ -51,17 +53,17 @@ async function request<T>(path: string, init?: RequestInit, base = BASE): Promis
 }
 
 export const getHome = (state?: string) =>
-  request<PortalHomeResponse>(`/bff/v1/portal/home${state ? `?state=${encodeURIComponent(state)}` : ""}`);
+  request<PortalHomeResponse>(`${PORTAL}/home${state ? `?state=${encodeURIComponent(state)}` : ""}`);
 
 export const getOverview = (accountNumber: string, days?: number) =>
   request<AccountOverviewResponse>(
-    `/bff/v1/portal/accounts/${encodeURIComponent(accountNumber)}/overview${days ? `?days=${days}` : ""}`,
+    `${PORTAL}/accounts/${encodeURIComponent(accountNumber)}/overview${days ? `?days=${days}` : ""}`,
   );
 
 export const openAccount = (body: AccountRegistrationRequest) =>
-  request<OpenAccountResponse>("/bff/v1/portal/accounts/open", { method: "POST", body: JSON.stringify(body) });
+  request<OpenAccountResponse>(`${PORTAL}/accounts/open`, { method: "POST", body: JSON.stringify(body) });
 
-const accountPath = (n: string) => `/bff/v1/portal/accounts/${encodeURIComponent(n)}`;
+const accountPath = (n: string) => `${PORTAL}/accounts/${encodeURIComponent(n)}`;
 
 /** Suspended accounts reject every withdraw/deposit until reactivated. Returns the refreshed overview. */
 export const suspendAccount = (accountNumber: string, body: SuspendAccountRequest) =>
@@ -87,13 +89,13 @@ const overviewToResult = (o: AccountOverviewResponse): AccountResult => ({
 
 // BFF endpoints: the backend validates the holder's name and address, and returns the refreshed overview.
 export const withdraw = (body: WithdrawRequest) =>
-  request<AccountOverviewResponse>("/bff/v1/portal/accounts/withdraw", {
+  request<AccountOverviewResponse>(`${PORTAL}/accounts/withdraw`, {
     method: "POST",
     body: JSON.stringify(body),
   }).then(overviewToResult);
 
 export const deposit = (body: DepositRequest) =>
-  request<AccountOverviewResponse>("/bff/v1/portal/accounts/deposit", {
+  request<AccountOverviewResponse>(`${PORTAL}/accounts/deposit`, {
     method: "POST",
     body: JSON.stringify(body),
   }).then(overviewToResult);

@@ -98,7 +98,7 @@ Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, 
 
 - **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. Required in
   production: `AUTH_SECRET` (a long random string; changing it later disables existing 2FA setups). Also set
-  `DEMO_USERS` (the default demo passwords are public), `NEXT_PUBLIC_API_BASE_URL`, `BANKING_BACKEND_URL` and any of
+  `DEMO_USERS` (the default demo passwords are public), `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_BFF_PORTAL_PATH` (BFF path prefix, default `/bff/v1/portal`, build time), `BANKING_BACKEND_URL` and any of
   the optional ones in `.env.local.brite`.
 - **Build-time vs start-time:** `NEXT_PUBLIC_*` values are baked into the browser bundle during `npm run build`, so set
   them *before* building. `BANKING_BACKEND_URL` and the other server variables are read when the server starts.
