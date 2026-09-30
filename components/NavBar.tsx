@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -9,7 +10,29 @@ export default function NavBar() {
   const { user, logout } = useAuth();
   const dialog = useRef<HTMLDialogElement>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const pathname = usePathname();
+  const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false); // phone-width menu; the links are always visible on wider screens
+
+  // Unread-notification badge: refreshed on navigation, every minute, and when the notifications page marks all read.
+  const signedIn = !!user;
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    const refresh = () =>
+      fetch("/api/auth/notifications?summary=1")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => !cancelled && setUnread(d?.unreadCount ?? 0))
+        .catch(() => {});
+    refresh();
+    const timer = setInterval(refresh, 60_000);
+    window.addEventListener("notifications-changed", refresh);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener("notifications-changed", refresh);
+    };
+  }, [signedIn, pathname]);
 
   async function confirmSignOut() {
     setSigningOut(true);
@@ -50,6 +73,10 @@ export default function NavBar() {
           <Link href="/">Home</Link>
           <Link href="/accounts/open">Open an account</Link>
           {user.role === "admin" && <Link href="/admin/users">Admin</Link>}
+          <Link href="/notifications" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
+            Notifications
+            {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}
+          </Link>
           <Link href="/settings/profile">{user.displayName || user.username}</Link>
           <button
             type="button"

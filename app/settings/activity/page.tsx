@@ -2,16 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { describeDevice } from "@/lib/device";
 import { EVENT_INFO, FAILURE_EVENTS, type AuditRecord } from "@/lib/audit-events";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
-
-/** "Chrome on macOS" from a user-agent string; falls back to a short raw prefix. */
-function device(ua?: string) {
-  if (!ua) return "—";
-  const browser = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : null;
-  const os = /iPhone|iPad/.test(ua) ? "iOS" : /Android/.test(ua) ? "Android" : /Mac OS X/.test(ua) ? "macOS" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : null;
-  return browser || os ? [browser, os].filter(Boolean).join(" on ") : ua.slice(0, 30);
-}
 
 export default function ActivityPage() {
   const [events, setEvents] = useState<AuditRecord[] | null>(null);
@@ -78,10 +71,10 @@ export default function ActivityPage() {
                     {e.detail && <span className="muted"> ({e.detail})</span>}
                     {/* Phones drop the Device/IP columns and show them here instead. */}
                     <div className="muted only-sm">
-                      {device(e.userAgent)} · {e.ip ?? "—"}
+                      {describeDevice(e.userAgent) ?? "—"} · {e.ip ?? "—"}
                     </div>
                   </td>
-                  <td className="hide-sm">{device(e.userAgent)}</td>
+                  <td className="hide-sm">{describeDevice(e.userAgent) ?? "—"}</td>
                   <td className="hide-sm">{e.ip ?? "—"}</td>
                 </tr>
               );

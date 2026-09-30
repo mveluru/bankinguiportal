@@ -42,6 +42,19 @@ dialog.confirm::backdrop { background:rgba(0,0,0,.5); }
 button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
 button.icon { background:none; color:var(--fg); border:1px solid var(--line); padding:4px 10px; }
 
+/* ---- Notifications ---- */
+.count { display:inline-block; min-width:1.4em; margin-left:6px; padding:0 6px; border-radius:99px; background:var(--err); color:var(--bg); font-size:.75rem; font-weight:700; line-height:1.4em; text-align:center; }
+.page-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.page-head h1 { margin:0; }
+.notice-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.notice { display:flex; gap:12px; padding:14px; background:var(--card); border:1px solid var(--line); border-radius:8px; }
+.notice.unread { border-left:4px solid var(--brand); }
+.notice-title { font-weight:600; }
+.notice .muted { display:block; }
+.notice-icon { flex:none; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:.9rem; background:var(--line); color:var(--fg); }
+.notice-icon.ok { background:#1b7f3b; color:#fff; }
+.notice-icon.warn { background:var(--err); color:var(--bg); }
+
 /* ---- Responsive ---- */
 code { overflow-wrap:anywhere; }
 td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date across lines */
