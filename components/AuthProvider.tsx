@@ -9,6 +9,8 @@ interface AuthUser {
   customerId: string;
   displayName?: string;
   role?: "admin" | "user";
+  /** Default window (days) for account activity and statements; from the user's settings. */
+  activityDays?: number;
   sessionExpires: number; // epoch ms
 }
 

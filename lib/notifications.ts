@@ -3,6 +3,8 @@ import path from "node:path";
 import { recentActivity } from "@/lib/audit";
 import type { AuditRecord } from "@/lib/audit-events";
 import { describeDevice } from "@/lib/device";
+import { getPreferences } from "@/lib/preferences";
+import type { NotifyPreferences } from "@/lib/preferences-shared";
 
 // In-app notifications are a curated, plain-language view over the audit log, so there is nothing to keep in sync:
 // each user's only stored state is a "read up to" timestamp in .data/notifications.json (gitignored, mode 600).
@@ -39,8 +41,9 @@ const lockMinutes = () => Number(process.env.LOCKOUT_MINUTES) || 15;
 const by = (e: AuditRecord) => (e.detail?.startsWith("by ") ? ` (${e.detail})` : "");
 const IF_NOT_YOU = "If this wasn't you, change your password and turn on two-factor authentication.";
 
-/** Events that always produce a notification on their own. */
-const SIMPLE: Partial<Record<AuditRecord["event"], (e: AuditRecord) => Omit<AppNotification, "id" | "ts" | "unread">>> = {
+/** Events that produce a notification on their own. `optional` ones can be muted in Settings; the rest are always shown. */
+type Simple = Omit<AppNotification, "id" | "ts" | "unread"> & { optional?: keyof NotifyPreferences };
+const SIMPLE: Partial<Record<AuditRecord["event"], (e: AuditRecord) => Simple>> = {
   lockout: () => ({
     level: "warn",
     title: "Your account was locked",
@@ -49,6 +52,7 @@ const SIMPLE: Partial<Record<AuditRecord["event"], (e: AuditRecord) => Omit<AppN
   password_changed: () => ({ level: "ok", title: "Your password was changed", detail: IF_NOT_YOU }),
   password_reset: () => ({ level: "ok", title: "Your password was reset", detail: IF_NOT_YOU }),
   password_reset_requested: () => ({
+    optional: "accountUpdates",
     level: "info",
     title: "A password reset link was requested",
     detail: "If it wasn't you, ignore it: the link expires after 30 minutes and only works once.",
@@ -60,14 +64,15 @@ const SIMPLE: Partial<Record<AuditRecord["event"], (e: AuditRecord) => Omit<AppN
     title: `An administrator reset your two-factor authentication${by(e)}`,
     detail: "You can sign in with just your password until you set it up again.",
   }),
-  account_unlocked: (e) => ({ level: "info", title: `An administrator unlocked your account${by(e)}` }),
+  account_unlocked: (e) => ({ optional: "accountUpdates", level: "info", title: `An administrator unlocked your account${by(e)}` }),
   account_disabled: (e) => ({ level: "warn", title: `Your account was disabled by an administrator${by(e)}` }),
-  account_enabled: (e) => ({ level: "ok", title: `Your account was re-enabled${by(e)}` }),
+  account_enabled: (e) => ({ optional: "accountUpdates", level: "ok", title: `Your account was re-enabled${by(e)}` }),
 };
 
 /** Notifications for a user, newest first, plus how many are unread (across all of them, not just the page). */
 export function buildNotifications(username: string, limit = 50): { notifications: AppNotification[]; unreadCount: number } {
   const readUpTo = readMarkers()[username] ?? "";
+  const { notify } = getPreferences(username);
   const found: Omit<AppNotification, "unread">[] = [];
 
   let failuresSinceSignIn = 0;
@@ -79,7 +84,7 @@ export function buildNotifications(username: string, limit = 50): { notification
     if (e.event === "login_failed" || e.event === "two_factor_failed") {
       failuresSinceSignIn++;
     } else if (e.event === "login_success") {
-      if (failuresSinceSignIn > 0) {
+      if (failuresSinceSignIn > 0 && notify.failedAttempts) {
         found.push({
           id: `${e.ts}:failed`,
           ts: e.ts,
@@ -90,7 +95,7 @@ export function buildNotifications(username: string, limit = 50): { notification
       }
       const device = describeDevice(e.userAgent);
       // The very first sign-in has nothing to compare against, so it isn't flagged.
-      if (device && signIns > 0 && !seenDevices.has(device)) {
+      if (notify.newDevice && device && signIns > 0 && !seenDevices.has(device)) {
         found.push({
           id: `${e.ts}:device`,
           ts: e.ts,
@@ -103,8 +108,8 @@ export function buildNotifications(username: string, limit = 50): { notification
       signIns++;
       failuresSinceSignIn = 0;
     } else {
-      const simple = SIMPLE[e.event]?.(e);
-      if (simple) found.push({ id: `${e.ts}:${e.event}`, ts: e.ts, ...simple });
+      const { optional, ...simple } = SIMPLE[e.event]?.(e) ?? ({} as Simple);
+      if (simple.title && !(optional && !notify[optional])) found.push({ id: `${e.ts}:${e.event}`, ts: e.ts, ...(simple as Omit<Simple, "optional">) });
     }
   }
 

@@ -55,6 +55,15 @@ button.icon { background:none; color:var(--fg); border:1px solid var(--line); pa
 .notice-icon.ok { background:#1b7f3b; color:#fff; }
 .notice-icon.warn { background:var(--err); color:var(--bg); }
 
+/* ---- Settings ---- */
+fieldset.choice-group { max-width:480px; border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:0; display:grid; gap:10px; background:var(--card); }
+fieldset.choice-group legend { padding:0 6px; font-size:.9rem; font-weight:600; }
+label.choice { display:flex; align-items:flex-start; gap:10px; font-size:1rem; cursor:pointer; }
+label.choice input { flex:none; width:20px; height:20px; min-height:0; margin-top:3px; accent-color:var(--brand); }
+label.choice .muted { display:block; }
+.grid a.card { color:inherit; }
+.grid a.card:hover { border-color:var(--brand); text-decoration:none; }
+
 /* ---- Responsive ---- */
 code { overflow-wrap:anywhere; }
 td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date across lines */
@@ -67,6 +76,7 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
   input, select, button, a.btn { min-height:44px; }
   .tap { display:inline-flex; align-items:center; min-height:44px; }
   .brand { display:inline-flex; align-items:center; min-height:44px; }
+  label.choice { min-height:44px; align-items:center; }
 }
 
 /* Phones: hamburger menu, tighter spacing, full-width primary buttons, stacked table cards. */

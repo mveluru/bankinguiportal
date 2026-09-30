@@ -57,6 +57,7 @@ export default function ProfilePage() {
 
   return (
     <>
+      <Link href="/settings" className="tap">← Settings</Link>
       <h1>Profile</h1>
       <div className="card" style={{ maxWidth: 480, marginBottom: 16 }}>
         <div>

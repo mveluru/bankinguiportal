@@ -77,7 +77,7 @@ export default function NavBar() {
             Notifications
             {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}
           </Link>
-          <Link href="/settings/profile">{user.displayName || user.username}</Link>
+          <Link href="/settings">{user.displayName || user.username}</Link>
           <button
             type="button"
             className="link"

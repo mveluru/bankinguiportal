@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { getOverview } from "@/lib/api";
 import { accountLabel, formatMoney, titleCase } from "@/lib/format";
 import type { AccountOverviewResponse } from "@/lib/types";
@@ -10,7 +11,9 @@ import { ErrorMessage, Loading } from "@/components/StateBlock";
 
 export default function AccountPage() {
   const { accountNumber } = useParams<{ accountNumber: string }>();
-  const [days, setDays] = useState(30);
+  const { user } = useAuth();
+  const [chosenDays, setDays] = useState<number | null>(null); // null until the user picks one: then the setting applies
+  const days = chosenDays ?? user?.activityDays ?? 30;
   const [data, setData] = useState<AccountOverviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
