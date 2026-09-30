@@ -11,6 +11,7 @@ import {
   verifySessionToken,
 } from "@/lib/session";
 import { verifyTwoFactor } from "@/lib/twofactor";
+import { roleOf } from "@/lib/users";
 
 /** Sign-in step 2: trades the password-step "pending" cookie plus a valid code for a real session. */
 export async function POST(request: Request) {
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     username: pending.username,
     customerId: pending.customerId,
     displayName: getProfile(pending.username).displayName,
+    role: roleOf(pending.username),
     sessionExpires: session.exp * 1000,
   });
   res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(remember));

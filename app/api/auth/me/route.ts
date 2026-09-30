@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/profiles";
+import { roleOf } from "@/lib/users";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export async function GET() {
@@ -10,6 +11,7 @@ export async function GET() {
     username: session.username,
     customerId: session.customerId,
     displayName: getProfile(session.username).displayName,
+    role: roleOf(session.username),
     sessionExpires: session.exp * 1000, // epoch ms
   });
 }

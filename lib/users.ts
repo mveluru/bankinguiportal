@@ -4,10 +4,13 @@ import path from "node:path";
 
 // Demo user store. Base users come from DEMO_USERS; a changed password is saved as a scrypt hash in
 // .data/users.json (gitignored) and takes precedence. Route handlers only (uses node:crypto / node:fs).
+export type Role = "admin" | "user";
+
 export interface DemoUser {
   username: string;
   password: string;
   customerId: string;
+  role: Role;
 }
 
 interface PasswordOverride {
@@ -20,14 +23,19 @@ const STORE_FILE = path.join(STORE_DIR, "users.json");
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-/** Parses DEMO_USERS ("username:password:customerId,..."). */
+/** Parses DEMO_USERS ("username:password:customerId[:admin],..."); only the literal role "admin" grants admin. */
 export function demoUsers(): DemoUser[] {
   const raw = process.env.DEMO_USERS ?? "demo:demo1234:CUST-DEMO";
   return raw
     .split(",")
     .map((entry) => entry.trim().split(":"))
-    .filter((p) => p.length === 3 && p.every(Boolean))
-    .map(([username, password, customerId]) => ({ username, password, customerId }));
+    .filter((p) => (p.length === 3 || p.length === 4) && p.slice(0, 3).every(Boolean))
+    .map(([username, password, customerId, role]) => ({
+      username,
+      password,
+      customerId,
+      role: role?.trim().toLowerCase() === "admin" ? ("admin" as const) : ("user" as const),
+    }));
 }
 
 function readOverrides(): Record<string, PasswordOverride> {
@@ -86,5 +94,8 @@ export function setPassword(username: string, password: string) {
   const salt = randomBytes(16).toString("hex");
   writeOverrides({ ...readOverrides(), [username]: { salt, hash: hashPassword(password, salt) } });
 }
+
+/** Role from the current configuration, not from any token, so it is always up to date. */
+export const roleOf = (username: string): Role => demoUsers().find((u) => u.username === username)?.role ?? "user";
 
 export const userExists = (username: string) => demoUsers().some((u) => u.username === username);

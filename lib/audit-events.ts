@@ -14,7 +14,9 @@ export type AuditEvent =
   | "password_reset_requested"
   | "password_reset"
   | "two_factor_enabled"
-  | "two_factor_disabled";
+  | "two_factor_disabled"
+  | "admin_users_viewed"
+  | "admin_access_denied";
 
 /** ok = success, warn = something failed or was refused, info = neutral. */
 export const EVENT_INFO: Record<AuditEvent, { label: string; level: "ok" | "warn" | "info" }> = {
@@ -33,6 +35,8 @@ export const EVENT_INFO: Record<AuditEvent, { label: string; level: "ok" | "warn
   password_reset: { label: "Password reset", level: "ok" },
   two_factor_enabled: { label: "Two-factor authentication turned on", level: "ok" },
   two_factor_disabled: { label: "Two-factor authentication turned off", level: "warn" },
+  admin_users_viewed: { label: "Viewed the user list (admin)", level: "info" },
+  admin_access_denied: { label: "Refused: admin area (not an admin)", level: "warn" },
 };
 
 export interface AuditRecord {

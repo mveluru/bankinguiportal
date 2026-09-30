@@ -30,6 +30,7 @@ export default function NavBar() {
           <nav>
             <Link href="/">Home</Link>
             <Link href="/accounts/open">Open an account</Link>
+            {user.role === "admin" && <Link href="/admin/users">Admin</Link>}
             <Link href="/settings/profile">{user.displayName || user.username}</Link>
             <button type="button" className="link" onClick={() => dialog.current?.showModal()}>
               Sign out

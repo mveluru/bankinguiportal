@@ -58,6 +58,28 @@ function readLines(file: string): AuditRecord[] {
   }
 }
 
+export interface ActivitySummary {
+  lastSignIn?: string; // ISO
+  lastFailure?: string; // ISO
+  failed24h: number;
+}
+
+/** Per-username (lowercase) sign-in summary across the current and rotated log, for the admin user list. */
+export function activitySummaries(): Record<string, ActivitySummary> {
+  const since = Date.now() - 24 * 3600_000;
+  const out: Record<string, ActivitySummary> = {};
+  for (const r of [...readLines(OLD_FILE), ...readLines(FILE)]) {
+    if (!r.username || typeof r.ts !== "string") continue;
+    const s = (out[r.username.toLowerCase()] ??= { failed24h: 0 });
+    if (r.event === "login_success" && (!s.lastSignIn || r.ts > s.lastSignIn)) s.lastSignIn = r.ts;
+    if (r.event === "login_failed") {
+      if (!s.lastFailure || r.ts > s.lastFailure) s.lastFailure = r.ts;
+      if (Date.parse(r.ts) >= since) s.failed24h++;
+    }
+  }
+  return out;
+}
+
 /** The user's most recent events, newest first. Usernames compare case-insensitively (as lockout does). */
 export function recentActivity(username: string, limit = 50): AuditRecord[] {
   const wanted = username.trim().toLowerCase();

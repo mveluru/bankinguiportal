@@ -8,6 +8,7 @@ interface AuthUser {
   username: string;
   customerId: string;
   displayName?: string;
+  role?: "admin" | "user";
   sessionExpires: number; // epoch ms
 }
 
