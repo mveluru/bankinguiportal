@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clearFailures } from "@/lib/lockout";
 import { consumeResetToken, isResetTokenValid } from "@/lib/resets";
 import { MIN_PASSWORD_LENGTH, setPassword } from "@/lib/users";
 
@@ -21,5 +22,6 @@ export async function POST(request: Request) {
   if (!username) return NextResponse.json({ message: "This reset link is invalid or has expired." }, { status: 400 });
 
   setPassword(username, newPassword);
+  clearFailures(username); // proving control of the account via the reset link lifts a lockout
   return NextResponse.json({ ok: true });
 }

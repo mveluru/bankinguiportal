@@ -9,14 +9,27 @@ import {
   sessionCookieOptions,
   verifySessionToken,
 } from "@/lib/session";
+import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
 import { isTwoFactorEnabled } from "@/lib/twofactor";
 import { authenticate } from "@/lib/users";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const remember = body?.remember === true;
-  const user = authenticate(String(body?.username ?? "").trim(), String(body?.password ?? ""));
-  if (!user) return NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
+  const username = String(body?.username ?? "").trim();
+
+  // Checked before the password so a locked name gets the same answer whether or not the password is right.
+  const lock = checkLock(username);
+  if (lock.locked) return lockedResponse(lock);
+
+  const user = authenticate(username, String(body?.password ?? ""));
+  if (!user) {
+    const after = registerFailure(username);
+    return after.locked
+      ? lockedResponse(after)
+      : NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
+  }
+  clearFailures(username);
 
   // Password is right, but with 2FA on no session exists until the code step succeeds.
   if (isTwoFactorEnabled(user.username)) {
