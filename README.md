@@ -23,7 +23,7 @@ backend's BFF endpoints (`/bff/v1/portal/*`), one call per screen.
 | Open account | `/accounts/open` | `POST /accounts/open` |
 | Deposit | `/accounts/[accountNumber]/deposit` | `POST /bff/v1/portal/accounts/deposit` |
 | Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /bff/v1/portal/accounts/{n}/statement?beginDate=&endDate=` |
-| Suspend / manage suspension / reactivate | `/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension`, `POST .../reactivate` (BFF) |
+| Suspend; manage suspension / reactivate (admins only once suspended) | `/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension`, `POST .../reactivate` (BFF) |
 | Close account (typed confirmation plus Yes/No dialog, irreversible) | `/accounts/[accountNumber]/close` | `POST /bff/v1/portal/accounts/{n}/close` |
 | Withdraw | `/accounts/[accountNumber]/withdraw` | `POST /bff/v1/portal/accounts/withdraw` |
 

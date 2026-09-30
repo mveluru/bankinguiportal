@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { getOverview, reactivateAccount, suspendAccount, updateSuspension } from "@/lib/api";
 import { accountLabel, formatMoney, formatSuspendedUntil } from "@/lib/format";
 import type { AccountOverviewResponse } from "@/lib/types";
@@ -14,6 +15,7 @@ const toApiDateTime = (v: string) => (v ? `${v}:00` : undefined);
 /** Suspend an active account, or change / lift the current suspension. */
 export default function SuspendAccountPage() {
   const { accountNumber } = useParams<{ accountNumber: string }>();
+  const { user } = useAuth();
   const [account, setAccount] = useState<AccountOverviewResponse | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,17 @@ export default function SuspendAccountPage() {
       <>
         {back}
         <p className="error">This account is closed and cannot be suspended.</p>
+      </>
+    );
+  }
+
+  if (account.suspended && user?.role !== "admin") {
+    return (
+      <>
+        {back}
+        <p className="error">
+          This account is suspended and read-only. Only an administrator can change or lift the suspension.
+        </p>
       </>
     );
   }

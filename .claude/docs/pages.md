@@ -10,7 +10,7 @@ the browser; public content pages (`/terms`, `/privacy`, `/help`) render on the 
 | `page.tsx` | Home: accounts plus branches/ATMs with a state filter. |
 | `login/`, `login/verify/` | Password step, then the 2FA code step. |
 | `forgot-password/`, `reset-password/` | Password reset (link is printed to the dev console; no email service). |
-| `accounts/[accountNumber]/` | Overview, plus `deposit`, `withdraw`, `statement`, `close`, `suspend` (suspend, edit end/notes, reactivate). `accounts/open/` opens a new account. |
+| `accounts/[accountNumber]/` | Overview, plus `deposit`, `withdraw`, `statement`, `close`, `suspend` (suspend; edit end/notes and reactivate are admin-only, UI-level). Closed and suspended accounts are read-only for regular users. `accounts/open/` opens a new account. |
 | `settings/` | Hub (theme, activity window, notification categories) with `profile`, `password`, `two-factor`, `activity`. |
 | `notifications/` | In-app notifications. |
 | `admin/users/` | Admin user management (admins only). |

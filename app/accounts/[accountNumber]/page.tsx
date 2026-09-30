@@ -12,6 +12,7 @@ import { ErrorMessage, Loading } from "@/components/StateBlock";
 export default function AccountPage() {
   const { accountNumber } = useParams<{ accountNumber: string }>();
   const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [chosenDays, setDays] = useState<number | null>(null); // null until the user picks one: then the setting applies
   const days = chosenDays ?? user?.activityDays ?? 30;
   const [data, setData] = useState<AccountOverviewResponse | null>(null);
@@ -43,14 +44,17 @@ export default function AccountPage() {
       {data.suspended && (
         <p className="error">
           This account is suspended {formatSuspendedUntil(data.suspendedUntil)}. Deposits and withdrawals are blocked
-          until it is reactivated.
+          until {isAdmin ? "it is reactivated." : "an administrator reactivates it. The account is read-only."}
         </p>
       )}
       <div className="balance">{formatMoney(data.balance)}</div>
       <div className="row" style={{ marginTop: 12 }}>
         <Link href={`/accounts/${data.accountNumber}/statement`} className="btn">Statement</Link>
       </div>
-      {data.accountStatus !== "CLOSED" && (
+      {data.accountStatus === "CLOSED" && (
+        <p className="error">This account is closed and read-only. It cannot be reopened.</p>
+      )}
+      {data.accountStatus !== "CLOSED" && (isAdmin || !data.suspended) && (
         <div className="row" style={{ marginTop: 12 }}>
           <Link href={`/accounts/${data.accountNumber}/suspend`} className="btn">
             {data.suspended ? "Manage suspension" : "Suspend account"}
