@@ -182,6 +182,10 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
                 }}
               />
             </label>
+            <label>
+              <span>Country<span className="req">*</span></span>
+              <input name="country" required maxLength={50} defaultValue="USA" autoComplete="country-name" />
+            </label>
           </div>
         </fieldset>
         {error && <ErrorMessage message={error} />}
