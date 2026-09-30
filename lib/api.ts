@@ -1,6 +1,5 @@
 import type {
   AccountOverviewResponse,
-  AccountApiResponse,
   AccountResult,
   BankStatement,
   DepositRequest,
@@ -80,15 +79,6 @@ export const updateSuspension = (accountNumber: string, body: UpdateSuspensionRe
 export const reactivateAccount = (accountNumber: string) =>
   request<AccountOverviewResponse>(`${accountPath(accountNumber)}/reactivate`, { method: "POST" });
 
-// Endpoints with no BFF equivalent (statement, close) go through the Next.js rewrite (same origin, so no CORS).
-const PROXY = "/api/banking";
-
-const toResult = (a: AccountApiResponse): AccountResult => ({
-  accountNumber: (a.checkingAccountNumber ?? a.savingAccountNumber) as string,
-  accountType: a.accountType,
-  balance: (a.checkingBalance ?? a.savingBalance) as number,
-});
-
 const overviewToResult = (o: AccountOverviewResponse): AccountResult => ({
   accountNumber: o.accountNumber,
   accountType: o.accountType,
@@ -108,18 +98,14 @@ export const deposit = (body: DepositRequest) =>
     body: JSON.stringify(body),
   }).then(overviewToResult);
 
-/** Side effect: the backend emails/SMSes the statement, so only call this on an explicit user action. */
+/**
+ * Side effect: the backend emails/SMSes the statement (hence a POST), so only call this on an explicit user action.
+ */
 export const getStatement = (accountNumber: string, beginDate: string, endDate: string) =>
-  request<BankStatement>(
-    `/v1/api/accounts/${encodeURIComponent(accountNumber)}/statement?beginDate=${beginDate}&endDate=${endDate}`,
-    undefined,
-    PROXY,
-  );
+  request<BankStatement>(`${accountPath(accountNumber)}/statement?beginDate=${beginDate}&endDate=${endDate}`, {
+    method: "POST",
+  });
 
-/** Irreversible: the backend has no reopen operation and does not require a zero balance. */
+/** Irreversible: the backend has no reopen operation and does not require a zero balance. Returns the refreshed overview. */
 export const closeAccount = (accountNumber: string) =>
-  request<AccountApiResponse>(
-    `/v1/api/accounts/${encodeURIComponent(accountNumber)}/close`,
-    { method: "POST" },
-    PROXY,
-  ).then(toResult);
+  request<AccountOverviewResponse>(`${accountPath(accountNumber)}/close`, { method: "POST" });

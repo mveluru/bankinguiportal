@@ -4,6 +4,9 @@ How the portal talks to the Spring Boot banking service (`springbootexampleproje
 8081). All calls go through one client, `lib/api.ts`, and are made **from the browser**. Route handlers in `app/api/`
 never call the banking service; they only serve the demo identity layer (see [api-routes.md](api-routes.md)).
 
+> **Every call now uses the BFF (Path A).** Path B (the `/api/banking` rewrite, its `proxy.ts` gate and
+> `BANKING_BACKEND_URL`) has no callers left and is kept only until the config is removed.
+
 ## Two paths to the same backend
 
 ```
@@ -40,8 +43,8 @@ Every function in `lib/api.ts`, what it calls, and which screen uses it.
 | `reactivateAccount(n)` | `POST /bff/v1/portal/accounts/{n}/reactivate` | A | suspend screen |
 | `deposit(body)` | `POST /bff/v1/portal/accounts/deposit` | A | deposit screen (`TransactionForm`) |
 | `withdraw(body)` | `POST /bff/v1/portal/accounts/withdraw` | A | withdraw screen (`TransactionForm`) |
-| `getStatement(n, begin, end)` | `GET /api/banking/v1/api/accounts/{n}/statement?beginDate=&endDate=` | B | statement screen. **Side effect:** the backend also emails/SMSes the statement |
-| `closeAccount(n)` | `POST /api/banking/v1/api/accounts/{n}/close` | B | close screen. **Irreversible:** no reopen, and no zero-balance check |
+| `getStatement(n, begin, end)` | `POST /bff/v1/portal/accounts/{n}/statement?beginDate=&endDate=` | A | statement screen (POST because it has a side effect). **Side effect:** the backend also emails/SMSes the statement |
+| `closeAccount(n)` | `POST /bff/v1/portal/accounts/{n}/close` | A | close screen. **Irreversible:** no reopen, and no zero-balance check |
 
 Account numbers are always passed through `encodeURIComponent`.
 
@@ -61,9 +64,8 @@ No session cookie, token or password is ever forwarded to the banking service.
 
 - Request and response shapes live in `lib/types.ts`, which mirrors the BFF DTOs
   (`org.bee.banking.bff.dto`). Change it only when the backend DTO changes.
-- Withdraw and deposit (BFF) return the refreshed `AccountOverviewResponse`; `lib/api.ts` reduces it to `AccountResult`.
-  Close (proxy) returns the raw `AccountApiResponse`, where only the balance matching the account type is
-  set. `toResult` in `lib/api.ts` normalises it to `{ accountNumber, accountType, balance }`.
+- Withdraw, deposit and close return the refreshed `AccountOverviewResponse`; for withdraw/deposit `lib/api.ts`
+  reduces it to `AccountResult` (`{ accountNumber, accountType, balance }`). Statement returns a `BankStatement`.
 - The holder form fields Middle and Country are **not** part of any request body: the backend has no fields for them.
   Phone is sent as `phoneNumber` by `openAccount` only; the overview returns it masked (`maskedPhoneNumber`, last four
   digits).
