@@ -50,6 +50,11 @@ export default function NavBar() {
         Brite Banking
       </Link>
       <div className="topbar-actions">
+        {!user && (
+          <Link href="/help" className="tap">
+            Help
+          </Link>
+        )}
         <ThemeToggle />
         {user && (
           <button
@@ -77,6 +82,7 @@ export default function NavBar() {
             Notifications
             {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}
           </Link>
+          <Link href="/help">Help</Link>
           <Link href="/settings">{user.displayName || user.username}</Link>
           <button
             type="button"

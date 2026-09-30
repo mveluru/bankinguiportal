@@ -7,8 +7,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 
-  // Reachable while signed out (and signed in: a reset link should work in any browser state).
-  if (pathname === "/forgot-password" || pathname === "/reset-password") return NextResponse.next();
+  // Reachable while signed out (and signed in: a reset link should work in any browser state). /help is public
+  // because people who can't sign in are exactly who needs it.
+  if (pathname === "/forgot-password" || pathname === "/reset-password" || pathname === "/help") return NextResponse.next();
 
   if (pathname === "/login" || pathname === "/login/verify") {
     return session ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();

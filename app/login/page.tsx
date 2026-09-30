@@ -55,8 +55,9 @@ function LoginForm() {
       <button type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
       </button>
-      <p>
+      <p className="link-list">
         <Link href="/forgot-password" className="tap">Forgot password?</Link>
+        <Link href="/help" className="tap">Need help?</Link>
       </p>
       <p className="muted">Demo login only. Accounts are configured in DEMO_USERS.</p>
     </form>
