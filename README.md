@@ -1,7 +1,7 @@
 # Brite Banking UI Portal
 
 Next.js (App Router, React 19, TypeScript) front end for the banking module of
-[springbootexampleprojects](https://github.com/mveluru/springbootexampleprojects). It talks only to the
+[bankingservices](https://github.com/mveluru/bankingservices). It talks only to the
 backend's BFF endpoints (`/bff/v1/portal/*`), one call per screen.
 
 | Screen | Route | BFF call |

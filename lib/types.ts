@@ -1,4 +1,4 @@
-// Mirrors the BFF DTOs in springbootexampleprojects (org.bee.banking.bff.dto).
+// Mirrors the BFF DTOs in bankingservices (org.bee.banking.bff.dto).
 export type AccountType = "CHECKING" | "SAVINGS" | "INVESTMENT" | "RETIREMENT" | "CREDIT_OR_LOAN";
 export type AccountStatus = "ACTIVE" | "SUSPENDED" | "CLOSED";
 

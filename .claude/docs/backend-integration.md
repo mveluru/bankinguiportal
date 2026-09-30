@@ -1,6 +1,6 @@
 # Calling the banking backend
 
-How the portal talks to the Spring Boot banking service (`springbootexampleprojects`, context path `/brite`, port
+How the portal talks to the Spring Boot banking service (`bankingservices`, context path `/brite`, port
 8081). All calls go through one client, `lib/api.ts`, and are made **from the browser**. Route handlers in `app/api/`
 never call the banking service; they only serve the demo identity layer (see [api-routes.md](api-routes.md)).
 
