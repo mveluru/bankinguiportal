@@ -29,7 +29,7 @@ backend's BFF endpoints (`/bff/v1/portal/*`), one call per screen.
 ## Run
 
 1. Start the backend (port 8081, context path `/brite`). It already allows `http://localhost:3000` via `banking.portal.allowed-origins`.
-2. `cp .env.local.example .env.local` (defaults are fine locally)
+2. `cp .env.local.brite .env.local` (defaults are fine locally)
 3. `npm install && npm run dev` → http://localhost:3000
 
 ### Stop and start the server
@@ -98,7 +98,7 @@ Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, 
 - **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. Required in
   production: `AUTH_SECRET` (a long random string; changing it later disables existing 2FA setups). Also set
   `DEMO_USERS` (the default demo passwords are public), `NEXT_PUBLIC_API_BASE_URL`, `BANKING_BACKEND_URL` and any of
-  the optional ones in `.env.local.example`.
+  the optional ones in `.env.local.brite`.
 - **Build-time vs start-time:** `NEXT_PUBLIC_*` values are baked into the browser bundle during `npm run build`, so set
   them *before* building. `BANKING_BACKEND_URL` and the other server variables are read when the server starts.
 - **Persistent `.data/`:** users, 2FA, lockouts, preferences and the audit log live in `.data/` under the working

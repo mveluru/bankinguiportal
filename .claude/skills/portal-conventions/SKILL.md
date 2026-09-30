@@ -13,7 +13,7 @@ Docs: `../../docs/index.md` (layer docs). Layer rules: see the sibling skills `p
 - Import with the `@/` alias (`@/lib/session`, `@/components/NavBar`), not long relative paths.
 - Match the surrounding code: naming, comment density, plain CSS classes from `app/globals.css`.
 - Never write passwords, codes, tokens or recovery codes to the audit log, the console, or an error message.
-- Tunables are env vars, documented in `.env.local.example`. Text that quotes them (`lib/faq.ts`, `lib/legal.ts`)
+- Tunables are env vars, documented in `.env.local.brite`. Text that quotes them (`lib/faq.ts`, `lib/legal.ts`)
   must read the same variable, so the wording cannot drift from behaviour.
 - The Spring backend does not authenticate. Login here is a front-end-only demo: do not present it as real security.
 - After a change, run `npx tsc --noEmit` and `npx eslint <changed files>`. Update the matching doc in `.claude/docs/` (and `README.md` if a

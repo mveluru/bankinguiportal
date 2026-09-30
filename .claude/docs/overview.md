@@ -2,7 +2,7 @@
 
 How the Brite Banking UI Portal is laid out: what each folder is for, what every file in `lib/` and `components/`
 does, and how a request moves through them. For screens and environment variables see `README.md` (repo root) and
-`.env.local.example`.
+`.env.local.brite`.
 
 > This project uses a newer Next.js (16.x) than most docs describe. Before changing framework-level code, read the
 > matching guide in `node_modules/next/dist/docs/`. Note that the request gate is `proxy.ts` (formerly `middleware.ts`).
@@ -42,7 +42,7 @@ Two backends, deliberately separate (details of the banking calls: [backend-inte
 | `next.config.ts` | Rewrites `/api/banking/*` to `BANKING_BACKEND_URL`. |
 | `public/` | Static assets served as-is. |
 | `.data/` | Runtime state created on demand (users, 2FA, lockouts, resets, prefs, audit log). Gitignored; never commit. |
-| `.env.local.example` | Template for `.env.local`. Every tunable (session length, lockout, demo users, …) is an env var. |
+| `.env.local.brite` | Template for `.env.local`. Every tunable (session length, lockout, demo users, …) is an env var. |
 | `.claude/` | Claude Code project files, not part of the app: `CLAUDE.md` / `AGENTS.md` (instructions), `docs/` (these reference docs, split by layer), `skills/` (rules per layer, one `SKILL.md` each). |
 | `eslint.config.mjs`, `tsconfig.json` | Lint and TypeScript config. The `@/` import alias maps to the repo root. |
 
@@ -52,6 +52,6 @@ Two backends, deliberately separate (details of the banking calls: [backend-inte
 - Keep server-only modules out of client components; put shared types and constants in a client-safe file
   (as `audit-events.ts` and `preferences-shared.ts` do).
 - Never write passwords, codes, tokens or recovery codes to the audit log.
-- Tunables go in env vars and are documented in `.env.local.example`; user-facing text that quotes them (`faq.ts`,
+- Tunables go in env vars and are documented in `.env.local.brite`; user-facing text that quotes them (`faq.ts`,
   `legal.ts`) reads the same variables.
 - Bump `NOTICE_VERSION` (`CookieNotice.tsx`) and `LAST_UPDATED` (`lib/legal.ts`) when wording or cookie use changes.

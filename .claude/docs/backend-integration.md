@@ -92,6 +92,6 @@ No session cookie, token or password is ever forwarded to the banking service.
 ## Running locally
 
 1. Start the backend on port 8081 (context path `/brite`).
-2. `cp .env.local.example .env.local` and keep the defaults: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_CUSTOMER_ID`,
+2. `cp .env.local.brite .env.local` and keep the defaults: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_CUSTOMER_ID`,
    `BANKING_BACKEND_URL`.
 3. `npm run dev`. Restart after changing any of these, because they are read at startup.

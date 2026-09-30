@@ -88,8 +88,8 @@ this `node_modules/` at run time.
 
 ## Step 6: Configure the environment on the server
 
-Templates for each environment are in the repo: `.env.staging.example` and `.env.prod.example`. Copy one to the host
-(`cp .env.prod.example /etc/bankinguiportal.env`), replace every `CHANGE_ME`, and `chmod 600` it. Staging and production
+Templates for each environment are in the repo: `.env.staging.brite` and `.env.prod.brite`. Copy one to the host
+(`cp .env.prod.brite /etc/bankinguiportal.env`), replace every `CHANGE_ME`, and `chmod 600` it. Staging and production
 must use different `AUTH_SECRET`, `DEMO_USERS` and backend URLs. The app does not reject a placeholder secret, so check
 that no `CHANGE_ME` is left: `grep CHANGE_ME /etc/bankinguiportal.env` should print nothing.
 
@@ -120,7 +120,7 @@ Which variables are read when:
 | Build time (step 2) | `NEXT_PUBLIC_*` |
 | Server start | everything else, including `BANKING_BACKEND_URL` and `AUTH_SECRET` |
 
-The full list, with defaults, is in `.env.local.example`.
+The full list, with defaults, is in `.env.local.brite`.
 
 ## Step 7: Make `.data/` persistent
 
