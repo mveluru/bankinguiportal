@@ -33,3 +33,6 @@ a.btn.danger, button.danger { background:var(--err); color:#fff; }
 button.link { background:none; color:var(--brand); padding:0; border:0; }
 button.link:hover { text-decoration:underline; }
 .topbar nav { align-items:center; }
+dialog.confirm { border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); padding:20px; max-width:360px; }
+dialog.confirm::backdrop { background:rgba(0,0,0,.5); }
+button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
