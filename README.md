@@ -60,6 +60,13 @@ npm run build && npm start   # serves on http://localhost:3000; stop it the same
 
 The backend (port 8081) is a separate process; stopping the portal does not stop it.
 
+### End-to-end tests
+
+`npm run test:e2e` logs in and checks the home and account screens in Chrome. It needs the backend running and
+Google Chrome installed. It reuses a dev server already on port 3000, or starts one. The specs are read-only
+(no deposit, withdraw, suspend, close or statement). Override the defaults with `E2E_USER`, `E2E_PASSWORD`,
+`E2E_ACCOUNT` and `E2E_PORT`.
+
 ## Deploy
 
 `node_modules/` and `.next/` are not in git (gitignored). The repo holds `package.json` (what to install) and
