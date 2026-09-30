@@ -88,6 +88,11 @@ this `node_modules/` at run time.
 
 ## Step 6: Configure the environment on the server
 
+Templates for each environment are in the repo: `.env.staging.example` and `.env.prod.example`. Copy one to the host
+(`cp .env.prod.example /etc/bankinguiportal.env`), replace every `CHANGE_ME`, and `chmod 600` it. Staging and production
+must use different `AUTH_SECRET`, `DEMO_USERS` and backend URLs. The app does not reject a placeholder secret, so check
+that no `CHANGE_ME` is left: `grep CHANGE_ME /etc/bankinguiportal.env` should print nothing.
+
 Put the variables in a file outside the release, for example `/etc/bankinguiportal.env` (mode `600`, owned by the
 service user). Do not reuse `.env.local` from a laptop.
 
