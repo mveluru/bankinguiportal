@@ -69,8 +69,10 @@ function passwordMatches(user: DemoUser, password: string): boolean {
     : safeEqual(password, user.password);
 }
 
+/** Sign-in ignores case ("admin" finds "Admin"); everything after sign-in uses the configured spelling. */
 export function authenticate(username: string, password: string): DemoUser | null {
-  const user = demoUsers().find((u) => u.username === username);
+  const wanted = username.toLowerCase();
+  const user = demoUsers().find((u) => u.username.toLowerCase() === wanted);
   // Always run a comparison so timing doesn't reveal whether the username exists.
   const ok = user ? passwordMatches(user, password) : safeEqual(password, "\0");
   return user && ok ? user : null;

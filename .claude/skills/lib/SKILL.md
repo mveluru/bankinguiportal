@@ -31,7 +31,7 @@ Rules:
 | File | Rules |
 |---|---|
 | `session.ts` | HMAC-signed cookie. `verifySessionToken` also rejects disabled accounts and sessions issued before `revokedBefore`. Keep it Web Crypto only. |
-| `users.ts` | `DEMO_USERS` is `username:password:customerId[:admin]`. Usernames match exactly, case-sensitively. Role is read from configuration on every call, never from a token. Passwords stored as scrypt hashes, compared with `safeEqual`. |
+| `users.ts` | `DEMO_USERS` is `username:password:customerId[:admin]`. Sign-in (`authenticate`) ignores username case; every other lookup matches the configured spelling exactly. Role is read from configuration on every call, never from a token. Passwords stored as scrypt hashes, compared with `safeEqual`. |
 | `accounts.ts` | Admin `disabled` / `revokedBefore` state. This is how a stateless session gets cut off. |
 | `lockout.ts` | Counts attempts by attempted username, existing or not. A locked name is refused even with the right password. |
 | `resets.ts` | Tokens are random, single-use, short-lived, stored only as SHA-256 hashes. |
