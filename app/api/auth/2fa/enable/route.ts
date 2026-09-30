@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { confirmEnable } from "@/lib/twofactor";
 
@@ -13,5 +14,6 @@ export async function POST(request: Request) {
   if (!recoveryCodes) {
     return NextResponse.json({ message: "That code is not valid. Check your app and try again." }, { status: 400 });
   }
+  audit(request, "two_factor_enabled", session.username);
   return NextResponse.json({ recoveryCodes });
 }

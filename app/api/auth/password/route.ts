@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { MIN_PASSWORD_LENGTH, changePassword } from "@/lib/users";
@@ -24,10 +25,12 @@ export async function POST(request: Request) {
   const result = changePassword(session.username, String(body?.currentPassword ?? ""), String(body?.newPassword ?? ""));
   if (result === "ok") {
     clearFailures(session.username);
+    audit(request, "password_changed", session.username);
     return NextResponse.json({ ok: true });
   }
   if (result === "wrong-current") {
     const after = registerFailure(session.username);
+    audit(request, "password_change_failed", session.username);
     if (after.locked) return lockedResponse(after);
   }
 

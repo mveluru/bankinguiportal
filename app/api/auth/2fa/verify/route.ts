@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { getProfile } from "@/lib/profiles";
 import {
   PENDING_COOKIE,
@@ -22,10 +23,15 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const result = verifyTwoFactor(pending.username, String(body?.code ?? ""));
   if (result === "locked") {
+    audit(request, "two_factor_locked", pending.username);
     return NextResponse.json({ message: "Too many attempts. Try again in a few minutes." }, { status: 429 });
   }
-  if (result !== "ok") return NextResponse.json({ message: "That code is not valid." }, { status: 400 });
+  if (result !== "ok") {
+    audit(request, "two_factor_failed", pending.username);
+    return NextResponse.json({ message: "That code is not valid." }, { status: 400 });
+  }
 
+  audit(request, "login_success", pending.username, pending.remember ? "two-step, remember me" : "two-step");
   const remember = pending.remember === true;
   const token = await createSessionToken(pending.username, pending.customerId, remember);
   const session = (await verifySessionToken(token))!;

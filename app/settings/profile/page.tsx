@@ -90,7 +90,8 @@ export default function ProfilePage() {
 
       <p>
         <Link href="/settings/password">Change password</Link> ·{" "}
-        <Link href="/settings/two-factor">Two-factor authentication</Link>
+        <Link href="/settings/two-factor">Two-factor authentication</Link> ·{" "}
+        <Link href="/settings/activity">Sign-in activity</Link>
       </p>
     </>
   );

@@ -80,6 +80,20 @@ export async function verifySessionToken(token: string | undefined): Promise<Ses
   return claims && claims.kind === undefined ? claims : null;
 }
 
+/** Username from a validly signed session token even if it has expired. For audit logging only, never for access. */
+export async function peekSessionUsername(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  try {
+    if (!(await crypto.subtle.verify("HMAC", await key("verify"), fromB64url(sig), enc.encode(payload)))) return null;
+    const claims = JSON.parse(new TextDecoder().decode(fromB64url(payload)));
+    return claims.kind === undefined && typeof claims.username === "string" ? claims.username : null;
+  } catch {
+    return null;
+  }
+}
+
 // --- Two-factor "pending" token: proves the password step passed, valid only for the code step. ---
 export const PENDING_COOKIE = "bank_2fa_pending";
 export const PENDING_MAX_AGE = 5 * 60; // seconds

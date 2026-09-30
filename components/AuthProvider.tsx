@@ -96,7 +96,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const expireSession = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: "expired" }),
+    }).catch(() => {});
     apply(null);
     hardNavigate("/login?expired=1");
   }, [apply]);

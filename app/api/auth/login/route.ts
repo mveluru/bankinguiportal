@@ -9,6 +9,7 @@ import {
   sessionCookieOptions,
   verifySessionToken,
 } from "@/lib/session";
+import { audit } from "@/lib/audit";
 import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
 import { isTwoFactorEnabled } from "@/lib/twofactor";
 import { authenticate } from "@/lib/users";
@@ -20,11 +21,16 @@ export async function POST(request: Request) {
 
   // Checked before the password so a locked name gets the same answer whether or not the password is right.
   const lock = checkLock(username);
-  if (lock.locked) return lockedResponse(lock);
+  if (lock.locked) {
+    audit(request, "login_blocked", username);
+    return lockedResponse(lock);
+  }
 
   const user = authenticate(username, String(body?.password ?? ""));
   if (!user) {
     const after = registerFailure(username);
+    audit(request, "login_failed", username);
+    if (after.locked) audit(request, "lockout", username);
     return after.locked
       ? lockedResponse(after)
       : NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
@@ -33,11 +39,13 @@ export async function POST(request: Request) {
 
   // Password is right, but with 2FA on no session exists until the code step succeeds.
   if (isTwoFactorEnabled(user.username)) {
+    audit(request, "two_factor_required", user.username);
     const res = NextResponse.json({ twoFactorRequired: true });
     res.cookies.set(PENDING_COOKIE, await createPendingToken(user.username, user.customerId, remember), pendingCookieOptions());
     return res;
   }
 
+  audit(request, "login_success", user.username, remember ? "remember me" : undefined);
   const token = await createSessionToken(user.username, user.customerId, remember);
   const session = (await verifySessionToken(token))!;
   const res = NextResponse.json({

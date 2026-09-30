@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { createResetToken } from "@/lib/resets";
 import { userExists } from "@/lib/users";
 
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
 
   if (username && userExists(username)) {
     const link = `${new URL(request.url).origin}/reset-password?token=${createResetToken(username)}`;
+    audit(request, "password_reset_requested", username);
     console.log(`[demo mailer] Password reset link for "${username}" (valid 30 min, single use): ${link}`);
   }
   return NextResponse.json({ ok: true });

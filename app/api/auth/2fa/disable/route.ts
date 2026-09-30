@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { audit } from "@/lib/audit";
 import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 import { disableTwoFactor, isTwoFactorEnabled, verifyTwoFactor } from "@/lib/twofactor";
@@ -31,5 +32,6 @@ export async function POST(request: Request) {
   if (result !== "ok") return NextResponse.json({ message: "That code is not valid." }, { status: 400 });
 
   disableTwoFactor(session.username);
+  audit(request, "two_factor_disabled", session.username);
   return NextResponse.json({ ok: true });
 }
