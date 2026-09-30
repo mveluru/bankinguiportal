@@ -71,7 +71,11 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
 
   if (!account) return error ? <ErrorMessage message={error} /> : <Loading />;
 
-  const back = <Link href={`/accounts/${accountNumber}`}>← Back to account</Link>;
+  const back = (
+    <Link href={`/accounts/${accountNumber}`} className="tap">
+      ← Back to account
+    </Link>
+  );
 
   if (account.accountStatus === "CLOSED" || !SUPPORTED.includes(account.accountType)) {
     return (

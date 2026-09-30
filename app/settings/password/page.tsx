@@ -42,7 +42,7 @@ export default function ChangePasswordPage() {
 
   return (
     <>
-      <Link href="/">← Home</Link>
+      <Link href="/" className="tap">← Home</Link>
       <h1>Change password</h1>
       {done && (
         <p role="status" className="deposit">

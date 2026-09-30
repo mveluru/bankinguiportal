@@ -88,10 +88,16 @@ export default function ProfilePage() {
         </button>
       </form>
 
-      <p>
-        <Link href="/settings/password">Change password</Link> ·{" "}
-        <Link href="/settings/two-factor">Two-factor authentication</Link> ·{" "}
-        <Link href="/settings/activity">Sign-in activity</Link>
+      <p className="link-list">
+        <Link href="/settings/password" className="tap">
+          Change password
+        </Link>
+        <Link href="/settings/two-factor" className="tap">
+          Two-factor authentication
+        </Link>
+        <Link href="/settings/activity" className="tap">
+          Sign-in activity
+        </Link>
       </p>
     </>
   );

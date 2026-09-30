@@ -135,7 +135,8 @@ export default function AdminUsersPage() {
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Username, name, email or customer ID" />
       </label>
 
-      <table>
+      <div className="table-wrap">
+      <table className="stack-sm">
         <thead>
           <tr>
             <th>User</th>
@@ -152,21 +153,23 @@ export default function AdminUsersPage() {
             const self = u.username === me?.username;
             return (
               <tr key={u.username}>
-                <td>
-                  <strong>{u.username}</strong> {u.role === "admin" && <span className="badge">Admin</span>}
-                  <div className="muted">
-                    {u.displayName ? `${u.displayName} · ` : ""}
-                    {u.customerId}
+                <td data-label="User">
+                  <div>
+                    <strong>{u.username}</strong> {u.role === "admin" && <span className="badge">Admin</span>}
+                    <div className="muted">
+                      {u.displayName ? `${u.displayName} · ` : ""}
+                      {u.customerId}
+                    </div>
                   </div>
                 </td>
-                <td>{u.email || <span className="muted">—</span>}</td>
-                <td className={u.twoFactorEnabled ? "deposit" : "muted"}>{u.twoFactorEnabled ? "On" : "Off"}</td>
-                <td className={u.disabled || u.locked ? "withdrawal" : undefined}>
+                <td data-label="Email">{u.email || <span className="muted">—</span>}</td>
+                <td data-label="2FA" className={u.twoFactorEnabled ? "deposit" : "muted"}>{u.twoFactorEnabled ? "On" : "Off"}</td>
+                <td data-label="Status" className={u.disabled || u.locked ? "withdrawal" : undefined}>
                   {u.disabled ? "Disabled" : u.locked ? `Locked (${Math.ceil(u.lockedForSeconds / 60)} min left)` : "Active"}
                 </td>
-                <td>{when(u.lastSignIn)}</td>
-                <td className={`num ${u.failedLast24h > 0 ? "withdrawal" : ""}`}>{u.failedLast24h}</td>
-                <td>
+                <td data-label="Last sign-in">{when(u.lastSignIn)}</td>
+                <td data-label="Failed (24h)" className={`num ${u.failedLast24h > 0 ? "withdrawal" : ""}`}>{u.failedLast24h}</td>
+                <td data-label="Actions">
                   <div className="row" style={{ gap: 8 }}>
                     {u.locked && (
                       <button type="button" className="secondary" disabled={busy} onClick={() => request(u.username, "unlock")}>
@@ -203,6 +206,7 @@ export default function AdminUsersPage() {
           )}
         </tbody>
       </table>
+      </div>
       <p className="muted">
         Passwords and secrets are never shown. Every action is recorded in the audit log and appears in the affected
         user&apos;s own sign-in activity.

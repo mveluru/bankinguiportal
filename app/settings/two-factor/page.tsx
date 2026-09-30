@@ -82,7 +82,7 @@ export default function TwoFactorPage() {
 
   return (
     <>
-      <Link href="/settings/profile">← Profile</Link>
+      <Link href="/settings/profile" className="tap">← Profile</Link>
       <h1>Two-factor authentication</h1>
 
       {recoveryCodes && (

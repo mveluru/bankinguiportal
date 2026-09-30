@@ -62,7 +62,8 @@ export default function AccountPage() {
       {data.recentActivity.length === 0 ? (
         <p className="muted">No activity in the last {data.activityDays} days.</p>
       ) : (
-        <table style={{ marginTop: 12 }}>
+        <div className="table-wrap" style={{ marginTop: 12 }}>
+        <table className="compact">
           <thead>
             <tr>
               <th>Date</th>
@@ -74,7 +75,7 @@ export default function AccountPage() {
           <tbody>
             {data.recentActivity.map((t, i) => (
               <tr key={i}>
-                <td>{t.transactionDate}</td>
+                <td className="nowrap">{t.transactionDate}</td>
                 <td>
                   {titleCase(t.transactionType)}
                   {t.depositType && <span className="muted"> ({titleCase(t.depositType)})</span>}
@@ -88,6 +89,7 @@ export default function AccountPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

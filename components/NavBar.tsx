@@ -9,6 +9,7 @@ export default function NavBar() {
   const { user, logout } = useAuth();
   const dialog = useRef<HTMLDialogElement>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // phone-width menu; the links are always visible on wider screens
 
   async function confirmSignOut() {
     setSigningOut(true);
@@ -25,20 +26,43 @@ export default function NavBar() {
       <Link href="/" className="brand">
         Brite Banking
       </Link>
-      <div className="row" style={{ alignItems: "center" }}>
-        {user && (
-          <nav>
-            <Link href="/">Home</Link>
-            <Link href="/accounts/open">Open an account</Link>
-            {user.role === "admin" && <Link href="/admin/users">Admin</Link>}
-            <Link href="/settings/profile">{user.displayName || user.username}</Link>
-            <button type="button" className="link" onClick={() => dialog.current?.showModal()}>
-              Sign out
-            </button>
-          </nav>
-        )}
+      <div className="topbar-actions">
         <ThemeToggle />
+        {user && (
+          <button
+            type="button"
+            className="icon nav-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="site-nav"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
+        )}
       </div>
+      {user && (
+        <nav
+          id="site-nav"
+          className={menuOpen ? "open" : undefined}
+          onClick={(e) => (e.target as HTMLElement).closest("a") && setMenuOpen(false)}
+        >
+          <Link href="/">Home</Link>
+          <Link href="/accounts/open">Open an account</Link>
+          {user.role === "admin" && <Link href="/admin/users">Admin</Link>}
+          <Link href="/settings/profile">{user.displayName || user.username}</Link>
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setMenuOpen(false);
+              dialog.current?.showModal();
+            }}
+          >
+            Sign out
+          </button>
+        </nav>
+      )}
       <dialog ref={dialog} className="confirm" aria-labelledby="signout-title">
         <h2 id="signout-title" style={{ marginTop: 0 }}>Sign out?</h2>
         <p className="muted">You will need to sign in again to view your accounts.</p>

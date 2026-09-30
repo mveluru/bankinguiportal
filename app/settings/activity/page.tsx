@@ -39,7 +39,7 @@ export default function ActivityPage() {
 
   return (
     <>
-      <Link href="/settings/profile">← Profile</Link>
+      <Link href="/settings/profile" className="tap">← Profile</Link>
       <h1>Sign-in activity</h1>
       <p className="muted">Recent sign-ins and security changes on your account (newest first).</p>
 
@@ -57,13 +57,14 @@ export default function ActivityPage() {
       {events.length === 0 ? (
         <p className="muted">Nothing recorded yet.</p>
       ) : (
-        <table>
+        <div className="table-wrap">
+        <table className="compact">
           <thead>
             <tr>
               <th>When</th>
               <th>Event</th>
-              <th>Device</th>
-              <th>IP</th>
+              <th className="hide-sm">Device</th>
+              <th className="hide-sm">IP</th>
             </tr>
           </thead>
           <tbody>
@@ -75,14 +76,19 @@ export default function ActivityPage() {
                   <td className={info.level === "warn" ? "withdrawal" : info.level === "ok" ? "deposit" : undefined}>
                     {info.label}
                     {e.detail && <span className="muted"> ({e.detail})</span>}
+                    {/* Phones drop the Device/IP columns and show them here instead. */}
+                    <div className="muted only-sm">
+                      {device(e.userAgent)} · {e.ip ?? "—"}
+                    </div>
                   </td>
-                  <td>{device(e.userAgent)}</td>
-                  <td>{e.ip ?? "—"}</td>
+                  <td className="hide-sm">{device(e.userAgent)}</td>
+                  <td className="hide-sm">{e.ip ?? "—"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

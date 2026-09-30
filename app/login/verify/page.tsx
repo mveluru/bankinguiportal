@@ -53,12 +53,12 @@ function VerifyForm() {
         {submitting ? "Verifying…" : "Verify"}
       </button>
       <p>
-        <button type="button" className="link" onClick={() => (setError(null), setUseRecovery((v) => !v))}>
+        <button type="button" className="link tap" onClick={() => (setError(null), setUseRecovery((v) => !v))}>
           {useRecovery ? "Use authenticator code instead" : "Use a recovery code"}
         </button>
       </p>
       <p>
-        <Link href="/login">← Back to sign in</Link>
+        <Link href="/login" className="tap">← Back to sign in</Link>
       </p>
     </form>
   );

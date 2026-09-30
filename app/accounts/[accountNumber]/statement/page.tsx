@@ -44,7 +44,7 @@ export default function StatementPage() {
 
   return (
     <>
-      <Link href={`/accounts/${accountNumber}`}>← Back to account</Link>
+      <Link href={`/accounts/${accountNumber}`} className="tap">← Back to account</Link>
       <h1>Statement</h1>
       <p className="muted">{accountNumber} · the bank also emails/texts a copy when you generate a statement.</p>
       <form className="row" onSubmit={onSubmit}>
@@ -73,7 +73,8 @@ export default function StatementPage() {
           {statement.transactions.length === 0 ? (
             <p className="muted">No transactions in this period.</p>
           ) : (
-            <table>
+            <div className="table-wrap">
+            <table className="compact">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -85,7 +86,7 @@ export default function StatementPage() {
               <tbody>
                 {statement.transactions.map((t, i) => (
                   <tr key={i}>
-                    <td>{t.transactionDate}</td>
+                    <td className="nowrap">{t.transactionDate}</td>
                     <td>
                       {titleCase(t.transactionType)}
                       {t.depositType && <span className="muted"> ({titleCase(t.depositType)})</span>}
@@ -99,6 +100,7 @@ export default function StatementPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </>
       )}

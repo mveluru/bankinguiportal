@@ -56,7 +56,7 @@ function LoginForm() {
         {submitting ? "Signing in…" : "Sign in"}
       </button>
       <p>
-        <Link href="/forgot-password">Forgot password?</Link>
+        <Link href="/forgot-password" className="tap">Forgot password?</Link>
       </p>
       <p className="muted">Demo login only. Accounts are configured in DEMO_USERS.</p>
     </form>

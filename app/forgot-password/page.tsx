@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
         </form>
       )}
       <p>
-        <Link href="/login">← Back to sign in</Link>
+        <Link href="/login" className="tap">← Back to sign in</Link>
       </p>
     </>
   );

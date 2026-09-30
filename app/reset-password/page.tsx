@@ -45,7 +45,7 @@ function ResetForm() {
         <p role="status" className="deposit">
           Password reset.
         </p>
-        <Link href="/login">Sign in</Link>
+        <Link href="/login" className="tap">Sign in</Link>
       </>
     );
   }
@@ -54,7 +54,7 @@ function ResetForm() {
     return (
       <>
         <p className="error">This reset link is missing its token.</p>
-        <Link href="/forgot-password">Request a new link</Link>
+        <Link href="/forgot-password" className="tap">Request a new link</Link>
       </>
     );
   }
@@ -74,7 +74,7 @@ function ResetForm() {
         {submitting ? "Saving…" : "Reset password"}
       </button>
       <p>
-        <Link href="/forgot-password">Request a new link</Link>
+        <Link href="/forgot-password" className="tap">Request a new link</Link>
       </p>
     </form>
   );

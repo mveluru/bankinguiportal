@@ -40,7 +40,11 @@ export default function CloseAccountPage() {
     }
   }
 
-  const back = <Link href={`/accounts/${accountNumber}`}>← Back to account</Link>;
+  const back = (
+    <Link href={`/accounts/${accountNumber}`} className="tap">
+      ← Back to account
+    </Link>
+  );
 
   if (!account) return error ? <ErrorMessage message={error} /> : <Loading />;
 
@@ -49,7 +53,12 @@ export default function CloseAccountPage() {
       <>
         <h1>Account closed</h1>
         <p>{accountNumber} has been closed. This cannot be undone.</p>
-        {back} · <Link href="/">Home</Link>
+        <div className="link-list">
+          {back}
+          <Link href="/" className="tap">
+            Home
+          </Link>
+        </div>
       </>
     );
   }
