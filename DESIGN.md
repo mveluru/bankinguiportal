@@ -139,12 +139,12 @@ handlers, `proxy.ts`, or server components.
 `TransactionForm` serves both `/accounts/[accountNumber]/deposit` and `/withdraw` (`kind` prop), so any layout change
 applies to both screens. Top to bottom:
 
-1. Amount, and Deposit type (deposit only).
+1. Amount\* (required), and Deposit type (deposit only).
 2. **Account holder details** subsection: a red `* indicates required` note, then First name\*, Middle and Last name\*
    in one row. First and last names are prefilled from the account overview.
 3. **Address** subsection, fields in horizontal rows that wrap on narrow screens:
    Street\*, Address line 1\*, Address line 2, then City\*, State\*, ZIP\*, Country\* (default `USA`).
-4. Error message, then the Deposit / Withdraw button.
+4. Error message, then a centred button row: Deposit / Withdraw and **Clear**, both in the brand blue.
 
 Details:
 
@@ -153,8 +153,10 @@ Details:
 - **Middle and Country are UI-only.** The backend (`AccountHolderDetails` in `lib/types.ts`) has no fields for them, so
   they are collected but not sent. Its State (2 letters) and ZIP (5 digits) rules still apply, so a non-US country
   will fail validation.
+- **Clear** empties every field, including the names prefilled from the account (a native reset would restore them).
+  Country returns to `USA`, Deposit type to Check, and any error message is removed. See `clearForm` in the component.
 - **Styling** lives in `app/globals.css`: `form.stack.wide` (wider form), `fieldset.subsection` (bordered group),
-  `.req` (red asterisk), and `.narrow` labels (State, ZIP). Fields flex within `.row`.
+  `.req` (red asterisk), and `.narrow` labels (State, ZIP), `.actions` (centred button row). Fields flex within `.row`.
 
 ## 6. Key flows
 
