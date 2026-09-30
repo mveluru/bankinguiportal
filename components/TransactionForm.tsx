@@ -197,6 +197,27 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
             </label>
           </div>
         </fieldset>
+        <fieldset className="subsection">
+          <legend>Contact</legend>
+          <div className="row">
+            <label className="narrow-phone">
+              Phone number
+              <input
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                maxLength={10}
+                pattern="\d{10}"
+                placeholder="10 digits"
+                title="10-digit US phone number"
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                }}
+              />
+            </label>
+          </div>
+        </fieldset>
         {error && <ErrorMessage message={error} />}
         <div className="row actions">
           <button type="submit" disabled={submitting}>
