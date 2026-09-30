@@ -22,7 +22,7 @@ Browser ──► proxy.ts (session gate) ──► app/ pages (React 19, App Ro
       lib/*.ts server modules ──► .data/*.json and .data/audit.log (gitignored, mode 600)
 ```
 
-Two backends, deliberately separate:
+Two backends, deliberately separate (details of the banking calls: [backend-integration.md](backend-integration.md)):
 
 - **The Spring banking service** owns money: accounts, balances, transactions, locations. The browser reaches it
   through `lib/api.ts`, either directly (BFF endpoints, CORS-enabled) or through the same-origin `/api/banking/*`

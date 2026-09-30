@@ -11,4 +11,5 @@ changing a layer, see the matching skill in `../skills/`. Screens and env vars a
 | Components (`components/`), incl. the transaction form layout | [components.md](components.md) | [components](../skills/components/SKILL.md) |
 | Library (`lib/`) | [lib.md](lib.md) | [lib](../skills/lib/SKILL.md) |
 | Request gate and config | [overview.md](overview.md) | [request-gate](../skills/request-gate/SKILL.md) |
+| Calling the banking backend (BFF, proxy, headers, errors) | [backend-integration.md](backend-integration.md) | [lib](../skills/lib/SKILL.md) |
 | Key flows | [flows.md](flows.md) | (none) |
