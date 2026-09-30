@@ -7,6 +7,7 @@ import { setCustomerId } from "@/lib/api";
 interface AuthUser {
   username: string;
   customerId: string;
+  displayName?: string;
 }
 
 interface AuthContextValue {
@@ -14,6 +15,8 @@ interface AuthContextValue {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-reads the session user (e.g. after editing the profile). */
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -56,11 +59,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     [apply],
   );
 
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/auth/me");
+    apply(res.ok ? await res.json() : null);
+  }, [apply]);
+
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     apply(null);
     router.replace("/login");
   }, [apply, router]);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, login, logout, refresh }}>{children}</AuthContext.Provider>;
 }
