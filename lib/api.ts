@@ -1,5 +1,9 @@
 import type {
   AccountOverviewResponse,
+  AccountApiResponse,
+  AccountResult,
+  DepositRequest,
+  WithdrawRequest,
   AccountRegistrationRequest,
   OpenAccountResponse,
   PortalHomeResponse,
@@ -24,10 +28,10 @@ async function errorMessage(res: Response): Promise<string> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, base = BASE): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await fetch(`${base}${path}`, {
       ...init,
       cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Customer-Id": CUSTOMER_ID, ...init?.headers },
@@ -50,3 +54,22 @@ export const getOverview = (accountNumber: string, days?: number) =>
 
 export const openAccount = (body: AccountRegistrationRequest) =>
   request<OpenAccountResponse>("/bff/v1/portal/accounts/open", { method: "POST", body: JSON.stringify(body) });
+
+// Non-BFF endpoints go through the Next.js rewrite (same origin, so no CORS).
+const PROXY = "/api/banking";
+
+const toResult = (a: AccountApiResponse): AccountResult => ({
+  accountNumber: (a.checkingAccountNumber ?? a.savingAccountNumber) as string,
+  accountType: a.accountType,
+  balance: (a.checkingBalance ?? a.savingBalance) as number,
+});
+
+export const withdraw = (body: WithdrawRequest) =>
+  request<AccountApiResponse>("/v1/api/accounts/withdraw", { method: "POST", body: JSON.stringify(body) }, PROXY).then(
+    toResult,
+  );
+
+export const deposit = (body: DepositRequest) =>
+  request<AccountApiResponse>("/v1/api/accounts/deposit", { method: "POST", body: JSON.stringify(body) }, PROXY).then(
+    toResult,
+  );

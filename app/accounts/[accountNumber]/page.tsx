@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getOverview } from "@/lib/api";
@@ -36,6 +37,12 @@ export default function AccountPage() {
         {data.closedDate && ` · closed ${data.closedDate}`}
       </p>
       <div className="balance">{formatMoney(data.balance)}</div>
+      {data.accountStatus === "ACTIVE" && ["CHECKING", "SAVINGS"].includes(data.accountType) && (
+        <div className="row" style={{ marginTop: 12 }}>
+          <Link href={`/accounts/${data.accountNumber}/deposit`} className="btn">Deposit</Link>
+          <Link href={`/accounts/${data.accountNumber}/withdraw`} className="btn">Withdraw</Link>
+        </div>
+      )}
 
       <h2>Recent activity</h2>
       <label style={{ maxWidth: 200 }}>

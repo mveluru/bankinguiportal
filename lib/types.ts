@@ -71,3 +71,44 @@ export interface AccountRegistrationRequest {
   addressLine2?: string;
   accountType: string;
 }
+
+export interface AccountHolderDetails {
+  firstName: string; // letters only
+  lastName: string;
+  street: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+export interface WithdrawRequest extends AccountHolderDetails {
+  accountNumber: string;
+  accountType: AccountType;
+  withdrawAmount: number;
+}
+
+export interface DepositRequest extends AccountHolderDetails {
+  accountNumber: string;
+  accountType: AccountType;
+  amount: number;
+  depositType: "cash" | "check";
+}
+
+/** Raw Account returned by withdraw/deposit: only the balance matching the account type is set. */
+export interface AccountApiResponse {
+  checkingAccountNumber: string | null;
+  savingAccountNumber: string | null;
+  checkingBalance: number | null;
+  savingBalance: number | null;
+  accountType: AccountType;
+  accountStatus: AccountStatus;
+}
+
+/** Normalised result of withdraw/deposit. */
+export interface AccountResult {
+  accountNumber: string;
+  accountType: AccountType;
+  balance: number;
+}
