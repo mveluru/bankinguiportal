@@ -1,7 +1,8 @@
 // Demo session: an HMAC-signed cookie. Uses Web Crypto so it runs in both route handlers and proxy.ts.
 // This is front-end-only demo auth: the banking backend does not authenticate requests.
 export const SESSION_COOKIE = "bank_session";
-export const SESSION_MAX_AGE = 60 * 60 * 8; // seconds
+/** Session length in seconds: SESSION_MAX_AGE_SECONDS, default 8 hours. */
+export const sessionMaxAge = () => Number(process.env.SESSION_MAX_AGE_SECONDS) || 60 * 60 * 8;
 
 export interface Session {
   username: string;
@@ -27,7 +28,7 @@ const key = (usage: KeyUsage) =>
   crypto.subtle.importKey("raw", enc.encode(secret()), { name: "HMAC", hash: "SHA-256" }, false, [usage]);
 
 export async function createSessionToken(username: string, customerId: string): Promise<string> {
-  const session: Session = { username, customerId, exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE };
+  const session: Session = { username, customerId, exp: Math.floor(Date.now() / 1000) + sessionMaxAge() };
   const payload = b64url(enc.encode(JSON.stringify(session)));
   const sig = await crypto.subtle.sign("HMAC", await key("sign"), enc.encode(payload));
   return `${payload}.${b64url(sig)}`;

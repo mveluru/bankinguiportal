@@ -10,5 +10,6 @@ export async function GET() {
     username: session.username,
     customerId: session.customerId,
     displayName: getProfile(session.username).displayName,
+    sessionExpires: session.exp * 1000, // epoch ms
   });
 }

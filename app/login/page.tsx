@@ -31,6 +31,7 @@ function LoginForm() {
 
   return (
     <form className="stack" onSubmit={onSubmit}>
+      {params.get("expired") && !error && <p role="status" className="muted">Your session timed out. Please sign in again.</p>}
       <label>
         Username
         <input name="username" required autoComplete="username" autoFocus />

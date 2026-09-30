@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
+import SessionTimeout from "@/components/SessionTimeout";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <AuthProvider>
           <NavBar />
+          <SessionTimeout />
           <main>{children}</main>
         </AuthProvider>
       </body>
