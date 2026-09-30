@@ -38,6 +38,7 @@ fieldset.subsection .row > label.narrow { flex:0 1 110px; }
 label { display:grid; gap:4px; font-size:.9rem; }
 input, select, button { font:inherit; font-size:1rem; padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
 button { background:var(--brand); color:#fff; border:0; cursor:pointer; }
+.actions { justify-content:center; }
 button:disabled { opacity:.6; cursor:default; }
 .row { display:flex; gap:12px; align-items:end; flex-wrap:wrap; }
 a.btn { display:inline-flex; align-items:center; padding:8px 16px; border-radius:6px; background:var(--brand); color:#fff; }
@@ -47,7 +48,7 @@ button.link { background:none; color:var(--brand); padding:0; border:0; }
 button.link:hover { text-decoration:underline; }
 dialog.confirm { border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); padding:20px; width:min(360px, calc(100vw - 32px)); }
 dialog.confirm::backdrop { background:rgba(0,0,0,.5); }
-button.secondary { background:transparent; color:var(--fg); border:1px solid var(--line); }
+.actions { justify-content:center; }
 button.icon { background:none; color:var(--fg); border:1px solid var(--line); padding:4px 10px; }
 
 /* ---- Notifications ---- */

@@ -69,6 +69,15 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
     }
   }
 
+  /** Empties every field (unlike form.reset(), which would restore the prefilled names); Country goes back to USA. */
+  function clearForm(form: HTMLFormElement) {
+    for (const el of Array.from(form.elements)) {
+      if (el instanceof HTMLInputElement) el.value = el.name === "country" ? "USA" : "";
+      else if (el instanceof HTMLSelectElement) el.selectedIndex = 0;
+    }
+    setError(null);
+  }
+
   if (!account) return error ? <ErrorMessage message={error} /> : <Loading />;
 
   const back = (
@@ -111,7 +120,7 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
       </p>
       <form className="stack wide" onSubmit={onSubmit}>
         <label>
-          Amount (USD)
+          <span>Amount (USD)<span className="req">*</span></span>
           <input name="amount" type="number" step="0.01" min="0.01" required />
         </label>
         {!isWithdraw && (
@@ -189,9 +198,14 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
           </div>
         </fieldset>
         {error && <ErrorMessage message={error} />}
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Submitting…" : isWithdraw ? "Withdraw" : "Deposit"}
-        </button>
+        <div className="row actions">
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Submitting…" : isWithdraw ? "Withdraw" : "Deposit"}
+          </button>
+          <button type="button" disabled={submitting} onClick={(e) => clearForm(e.currentTarget.form!)}>
+            Clear
+          </button>
+        </div>
       </form>
     </>
   );
