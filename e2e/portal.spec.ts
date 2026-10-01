@@ -22,3 +22,17 @@ test("account screen shows the balance and recent activity", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Recent activity" })).toBeVisible();
   await expect(page.getByText("Cannot reach the banking service")).toHaveCount(0);
 });
+
+test("welcome headline shows once after sign-in and not after navigating on or reloading", async ({ page }) => {
+  const greeting = page.getByRole("status").filter({ hasText: /^Welcome! .+ · customer since \d{4}$/ });
+  await expect(greeting).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+  await expect(greeting).toHaveCount(0);
+
+  await page.context().clearCookies();
+  await signInCustomer(page); // fresh sign-in: shown again, then gone after moving to another screen and back
+  await page.getByRole("link", { name: "Help" }).first().click();
+  await page.getByRole("link", { name: "Home" }).click();
+  await expect(greeting).toHaveCount(0);
+});

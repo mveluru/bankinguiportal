@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { clearGreeting, saveGreeting } from "@/lib/greeting";
 import { hardNavigate } from "@/lib/navigation";
 import { loginOf } from "@/lib/session";
 import { readErrorMessage } from "@/lib/http-error";
@@ -47,7 +48,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       body: JSON.stringify({ kind, username, password }),
     });
     if (!res.ok) throw new Error(await readErrorMessage(res));
-    const u: SessionUser = await res.json();
+    const { greeting, ...u }: SessionUser & { greeting?: string } = await res.json();
+    if (greeting) saveGreeting(greeting);
     setUser(u);
     return u;
   }, []);
@@ -55,6 +57,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const end = useCallback(
     async (suffix: string) => {
       const kind = user?.kind ?? "customer";
+      clearGreeting();
       await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
       setUser(null);
       hardNavigate(`${loginOf(kind)}${suffix}`);

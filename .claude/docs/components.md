@@ -8,6 +8,7 @@
 | `IdleLogout.tsx` | client | Signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab; lands on the portal's sign-in page with `?expired=1`. |
 | `auth/SignInForm.tsx`, `ForgotPassword.tsx`, `ChangePassword.tsx`, `SecurityQuestions.tsx`, `SettingsHome.tsx` | client | Credential screens shared by both portals (`kind` prop). |
 | `accounts/AccountDetail.tsx`, `CloseAccount.tsx`, `SuspendAccount.tsx`, `OpenAccount.tsx` | client | Account screens. `AccountDetail` and `CloseAccount` serve both portals; `SuspendAccount` and `OpenAccount` are staff-only. |
+| `Greeting.tsx` | client | One-time welcome banner on the landing screen (`Greeting`) and the layout-level `GreetingReset` that clears it on the first navigation. |
 | `CredentialAdmin.tsx` | client | Forms used by staff on a login: set status, set password, create login. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |

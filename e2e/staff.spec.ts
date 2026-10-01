@@ -4,6 +4,7 @@ import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
 // Read-only: browses the staff portal as an area manager; never changes an account or a login.
 test("staff sign in, see their role, look up an account and list employees", async ({ page }) => {
   await signInStaff(page);
+  await expect(page.getByRole("status").filter({ hasText: /^Welcome Priya Raman EMP-000001$/ })).toBeVisible();
   await expect(page.getByText("Area Manager").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "UserMgnt" })).toBeVisible();
 

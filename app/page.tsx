@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getHome } from "@/lib/api";
 import { accountLabel, formatSuspendedUntil } from "@/lib/format";
 import type { PortalHomeResponse } from "@/lib/types";
+import Greeting from "@/components/Greeting";
 import LocationCard from "@/components/LocationCard";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
 
@@ -28,6 +29,7 @@ export default function HomePage() {
 
   return (
     <>
+      <Greeting />
       <h1>Welcome</h1>
       <form
         className="row"

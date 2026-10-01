@@ -14,4 +14,4 @@ async function signIn(page: Page, path: string, who: { user: string; password: s
 }
 
 export const signInCustomer = (page: Page) => signIn(page, "/login", CUSTOMER, "Welcome");
-export const signInStaff = (page: Page) => signIn(page, "/staff/login", STAFF, /Welcome, /);
+export const signInStaff = (page: Page) => signIn(page, "/staff/login", STAFF, "Dashboard");

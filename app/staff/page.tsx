@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import Greeting from "@/components/Greeting";
 import LocationCard from "@/components/LocationCard";
 import { Loading } from "@/components/StateBlock";
 import { accountHref, titleCase } from "@/lib/format";
@@ -17,7 +18,8 @@ export default function StaffHomePage() {
 
   return (
     <>
-      <h1>Welcome, {user.displayName}</h1>
+      <Greeting />
+      <h1>Dashboard</h1>
       <p className="muted">
         {user.employeeNumber} · {user.role && titleCase(user.role)}
       </p>

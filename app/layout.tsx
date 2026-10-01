@@ -4,6 +4,7 @@ import CookieNotice from "@/components/CookieNotice";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
 import SessionTimeout from "@/components/SessionTimeout";
+import { GreetingReset } from "@/components/Greeting";
 import IdleLogout from "@/components/IdleLogout";
 import "./globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <NavBar />
           <SessionTimeout />
           <IdleLogout />
+          <GreetingReset />
           <main>{children}</main>
           <footer className="site-footer">
             <nav aria-label="Legal and help">

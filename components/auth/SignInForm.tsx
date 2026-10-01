@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorMessage } from "@/components/StateBlock";
+import { clearGreeting } from "@/lib/greeting";
 import { hardNavigate } from "@/lib/navigation";
 import { homeOf } from "@/lib/session";
 import type { PortalKind } from "@/lib/types";
@@ -26,7 +27,10 @@ function Form({ kind }: { kind: PortalKind }) {
       // Only follow same-site relative redirects, and only into the portal the user signed in to.
       const next = params.get("next");
       const inPortal = next && (staff ? next.startsWith("/staff") : !next.startsWith("/staff"));
-      hardNavigate(inPortal && next.startsWith("/") && !next.startsWith("//") ? next : homeOf(kind));
+      const target = inPortal && next.startsWith("/") && !next.startsWith("//") ? next : homeOf(kind);
+      // The welcome headline belongs to the landing screen only: drop it when sent straight to a deeper page.
+      if (target !== homeOf(kind)) clearGreeting();
+      hardNavigate(target);
     } catch (err) {
       setError((err as Error).message);
       setSubmitting(false);

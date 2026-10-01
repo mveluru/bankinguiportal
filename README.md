@@ -149,6 +149,10 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   refresh). A second httpOnly cookie, `bank_profile`, holds the name, role, privileges and branch for display. Neither is
   trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting
   an employee or changing a password applies at once. Passwords are exactly 8 digits.
+- **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
+  staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
+  load and removed when read, so a reload, any navigation or sign-out clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The
+  backend has no "customer since" field, so the year is the earliest account date in the sign-in response (the newest open accounts only).
 - **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to
   the matching sign-in page. It reads only the token's type and expiry; the backend is the real access control (a customer
   token on a staff call is 403, and vice versa). The UI hides actions the role lacks, but never relies on that.
