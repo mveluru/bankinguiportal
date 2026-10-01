@@ -4,6 +4,7 @@ import CookieNotice from "@/components/CookieNotice";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
 import SessionTimeout from "@/components/SessionTimeout";
+import IdleLogout from "@/components/IdleLogout";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <NavBar />
           <SessionTimeout />
+          <IdleLogout />
           <main>{children}</main>
           <footer className="site-footer">
             <nav aria-label="Legal and help">

@@ -5,6 +5,7 @@
 | `AuthProvider.tsx` | client | React context holding the signed-in user (`useAuth`): `login`, `verifyTwoFactor`, `logout`, `refresh`, `extendSession`, `expireSession`. Also sets the customer ID used by `lib/api.ts`. |
 | `NavBar.tsx` | client | Header links, admin link, unread-notification badge (polled every minute), sign-out dialog, phone-width menu. |
 | `SessionTimeout.tsx` | client | Countdown dialog before expiry with "Stay signed in"; signs out at expiry using the absolute expiry time. |
+| `IdleLogout.tsx` | client | Signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab; lands on `/login?expired=1`. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |
 | `ThemePicker.tsx` | client | System/Light/Dark selector on the settings page; same storage as the toggle. |
