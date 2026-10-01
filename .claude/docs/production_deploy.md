@@ -48,6 +48,7 @@ backend address. Changing them later needs a rebuild.
 export NEXT_PUBLIC_API_BASE_URL=https://bank.example.com/brite
 export NEXT_PUBLIC_CUSTOMER_ID=portal          # rate-limit key only
 export NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
+export NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120    # sign out after this much inactivity
 ```
 
 ## Step 3: Build

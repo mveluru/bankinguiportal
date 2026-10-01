@@ -31,6 +31,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
   const session = duration(num(process.env.SESSION_MAX_AGE_SECONDS, 8 * 3600));
   const remember = duration(num(process.env.REMEMBER_ME_MAX_AGE_SECONDS, 30 * 86400));
   const warning = duration(num(process.env.NEXT_PUBLIC_SESSION_WARNING_SECONDS, 120));
+  const idle = duration(num(process.env.NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS, 120));
   const twoFactorLock = Math.round(LOCKOUT_MS / 60_000);
 
   return [
@@ -141,7 +142,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Signing in & security",
       question: "Why was I signed out?",
       answer: [
-        `Sessions last up to ${session}. About ${warning} before yours ends, a dialog with a countdown offers Stay signed in; if you don't respond you're signed out automatically.`,
+        `Sessions last up to ${session}. About ${warning} before yours ends, a dialog with a countdown offers Stay signed in; if you don't respond you're signed out automatically. You're also signed out after ${idle} without any activity on the portal.`,
         "An administrator disabling your account also ends your session immediately.",
       ],
     },

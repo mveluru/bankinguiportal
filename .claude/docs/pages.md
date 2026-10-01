@@ -5,7 +5,7 @@ the browser; public content pages (`/terms`, `/privacy`, `/help`) render on the 
 
 | Route | Purpose |
 |---|---|
-| `layout.tsx` | Root layout: wraps everything in `AuthProvider`, renders `NavBar`, `SessionTimeout`, `CookieNotice`, the footer, and a pre-paint script that applies the saved theme (avoids a flash). |
+| `layout.tsx` | Root layout: wraps everything in `AuthProvider`, renders `NavBar`, `SessionTimeout`, `IdleLogout`, `CookieNotice`, the footer, and a pre-paint script that applies the saved theme (avoids a flash). |
 | `globals.css` | All styling (plain CSS, CSS variables for light/dark). Shared classes such as `card`, `badge`, `muted`, `error`. |
 | `page.tsx` | Home: accounts plus branches/ATMs with a state filter. |
 | `login/`, `login/verify/` | Password step, then the 2FA code step. |
