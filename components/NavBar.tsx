@@ -1,38 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/components/AuthProvider";
+import { useRef, useState } from "react";
+import { can, useAuth } from "@/components/AuthProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import { homeOf } from "@/lib/session";
 
 export default function NavBar() {
   const { user, logout } = useAuth();
   const dialog = useRef<HTMLDialogElement>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const pathname = usePathname();
-  const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false); // phone-width menu; the links are always visible on wider screens
-
-  // Unread-notification badge: refreshed on navigation, every minute, and when the notifications page marks all read.
-  const signedIn = !!user;
-  useEffect(() => {
-    if (!signedIn) return;
-    let cancelled = false;
-    const refresh = () =>
-      fetch("/api/auth/notifications?summary=1")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => !cancelled && setUnread(d?.unreadCount ?? 0))
-        .catch(() => {});
-    refresh();
-    const timer = setInterval(refresh, 60_000);
-    window.addEventListener("notifications-changed", refresh);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-      window.removeEventListener("notifications-changed", refresh);
-    };
-  }, [signedIn, pathname]);
+  const staff = user?.kind === "staff";
 
   async function confirmSignOut() {
     setSigningOut(true);
@@ -46,8 +25,8 @@ export default function NavBar() {
 
   return (
     <header className="topbar">
-      <Link href="/" className="brand">
-        Brite Banking
+      <Link href={user ? homeOf(user.kind) : "/"} className="brand">
+        Brite Banking{staff && " · Staff"}
       </Link>
       <div className={`topbar-actions${user ? "" : " push"}`}>
         {!user && (
@@ -75,15 +54,22 @@ export default function NavBar() {
           className={menuOpen ? "open" : undefined}
           onClick={(e) => (e.target as HTMLElement).closest("a") && setMenuOpen(false)}
         >
-          <Link href="/">Home</Link>
-          <Link href="/accounts/open">Open an account</Link>
-          {user.role === "admin" && <Link href="/admin/users">UserMgnt</Link>}
-          <Link href="/notifications" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}>
-            Notifications
-            {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}
-          </Link>
-          <Link href="/help">Help</Link>
-          <Link href="/settings">{user.displayName || user.username}</Link>
+          {staff ? (
+            <>
+              <Link href="/staff">Dashboard</Link>
+              {can(user, "OPEN_ACCOUNT") && <Link href="/staff/accounts/open">Open an account</Link>}
+              {can(user, "MANAGE_CUSTOMER_LOGINS") && <Link href="/staff/customers">Customer logins</Link>}
+              {can(user, "MANAGE_EMPLOYEES") && <Link href="/staff/employees">UserMgnt</Link>}
+              <Link href="/help">Help</Link>
+              <Link href="/staff/settings">{user.displayName}</Link>
+            </>
+          ) : (
+            <>
+              <Link href="/">Home</Link>
+              <Link href="/help">Help</Link>
+              <Link href="/settings">{user.displayName}</Link>
+            </>
+          )}
           <button
             type="button"
             className="link"
@@ -98,7 +84,7 @@ export default function NavBar() {
       )}
       <dialog ref={dialog} className="confirm" aria-labelledby="signout-title">
         <h2 id="signout-title" style={{ marginTop: 0 }}>Sign out?</h2>
-        <p className="muted">You will need to sign in again to view your accounts.</p>
+        <p className="muted">You will need to sign in again to {staff ? "continue" : "view your accounts"}.</p>
         <div className="row" style={{ justifyContent: "flex-end" }}>
           <button type="button" className="secondary" onClick={() => dialog.current?.close()} disabled={signingOut}>
             Cancel

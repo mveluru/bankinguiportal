@@ -1,47 +1,27 @@
 # Library (`lib/`)
 
-Rule of thumb for the suffixes: files marked **client-safe** have no `node:` imports and can be imported from
-components. Everything else is **server-only** (uses `node:fs` / `node:crypto`) and must be imported only from route
-handlers, `proxy.ts`, or server components.
+**Client-safe** files have no `node:` or `next/headers` imports and can be imported from components. **Server-only** files
+(`backend.ts`, `bff-proxy.ts`, plus `faq.ts` and `legal.ts`, which read env at render time) are imported only from route
+handlers and server components.
 
-### Shared / client-safe
+### Client-safe
 
 | File | Responsibility |
 |---|---|
-| `types.ts` | TypeScript mirrors of the Spring BFF DTOs (accounts, locations, requests, responses). |
-| `api.ts` | Browser client for the banking backend: `getHome`, `getOverview`, `openAccount`, `withdraw`, `deposit`, `getStatement`, `closeAccount`. Adds `X-Customer-Id`, defines `ApiError`, and normalises the backend's two error shapes (plain text vs Spring JSON). |
-| `format.ts` | `formatMoney`, `accountLabel`, `titleCase`. |
-| `duration.ts` | Turns configured seconds/minutes into words ("8 hours") and parses positive numbers from env strings. |
-| `device.ts` | "Chrome on macOS" from a user-agent string. |
+| `types.ts` | TypeScript mirrors of the backend's BFF DTOs and requests (accounts, locations, employees, login status, security questions) plus `SessionUser`. |
+| `api.ts` | The browser's client: `accountsApi(kind)` (overview, deposit, withdraw, close), customer `getHome` / `getStatement`, staff open/suspend/reactivate, employees, customer logins, and `credentialsApi(kind)` (password, security questions, reset). Calls only `/api/portal/*` and `/api/staff/*`. |
+| `http-error.ts` | `readErrorMessage`: the backend's two error shapes (plain text vs Spring JSON) as one string. |
+| `session.ts` | Cookie names and options, `decodeToken` (claims read WITHOUT verifying; routing and display only), `tokenKind`, `homeOf` / `loginOf`. Edge-safe: `proxy.ts` imports it. |
+| `passwords.ts` | The 8-digit password rule for forms (the backend validates again). |
+| `format.ts` | `formatMoney`, `accountLabel`, `titleCase`, `accountHref(kind, n, tail)`. |
+| `duration.ts` | Turns configured seconds into words and parses positive numbers from env strings. |
 | `navigation.ts` | `hardNavigate`: full page load for auth transitions, avoiding stale prefetched redirects. |
-| `audit-events.ts` | Names, labels and severity of audit events; which count as failed/suspicious. Shared by the log writer and the activity page. |
-| `preferences-shared.ts` | Preference types and defaults. |
 
-### Session and authentication (server)
+### Server-only
 
 | File | Responsibility |
 |---|---|
-| `session.ts` | HMAC-signed session cookie via Web Crypto, so it runs in both route handlers **and** `proxy.ts`. Session length, remember-me, cookie attributes, `verifySessionToken` (also checks disabled/revoked state). |
-| `users.ts` | Demo user store: parses `DEMO_USERS`, holds scrypt-hashed changed passwords (`.data/users.json`), `roleOf`. |
-| `accounts.ts` | Admin-controlled `disabled` / `revokedBefore` per user (`.data/accounts.json`); this is how stateless sessions get cut off. |
-| `lockout.ts` | Failed-password lockout by attempted username (`.data/lockouts.json`). |
-| `resets.ts` | Single-use, short-lived password reset tokens, stored only as SHA-256 hashes. |
-| `totp.ts` | RFC 6238 TOTP generation and verification with replay protection. |
-| `twofactor.ts` | Per-user 2FA state: encrypted secrets (AES-256-GCM), hashed recovery codes, setup/enable/verify/disable. |
-| `admin.ts` | `requireAdmin` guard for admin routes. |
-
-### Per-user data and observability (server)
-
-| File | Responsibility |
-|---|---|
-| `profiles.ts` | Editable display name and email (`.data/profiles.json`). |
-| `preferences.ts` | Per-user settings: activity window, optional notification categories (`.data/preferences.json`). |
-| `audit.ts` | Append-only JSON-lines audit log with rotation and client IP/user-agent capture. Never logs secrets. |
-| `notifications.ts` | Curated notifications derived from the audit log; only a "read up to" marker is stored. |
-
-### Content (server)
-
-| File | Responsibility |
-|---|---|
-| `faq.ts` | Help & FAQ content; quotes live config so answers cannot drift from behaviour. |
-| `legal.ts` | Terms of Use and Privacy Policy text, with operator details and durations read from config. |
+| `backend.ts` | `callBackend(kind, path, init)` to `BANKING_BACKEND_URL` + `BFF_PORTAL_PATH` / `BFF_STAFF_PATH` (adds Bearer, `X-Customer-Id`, `no-store`); `getSession()` reads the cookies; `rateKey()`. |
+| `bff-proxy.ts` | `proxyToBff` for the two catch-all routes, and `clearSession`. |
+| `faq.ts` | Help & FAQ content; quotes live config (warning and idle seconds) so answers cannot drift. |
+| `legal.ts` | Terms of Use and Privacy Policy text, with operator details read from config. |

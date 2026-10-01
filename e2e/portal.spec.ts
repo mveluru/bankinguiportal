@@ -1,16 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { ACCOUNT, signInCustomer } from "./helpers";
 
 // Read-only: these specs never deposit, withdraw, suspend, close or request a statement.
-const USER = process.env.E2E_USER ?? "demo";
-const PASSWORD = process.env.E2E_PASSWORD ?? "demo1234";
-const ACCOUNT = process.env.E2E_ACCOUNT ?? "CH-0000088291";
-
 test.beforeEach(async ({ page }) => {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill(USER);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+  await signInCustomer(page);
 });
 
 test("home lists accounts from the banking service", async ({ page }) => {

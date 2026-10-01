@@ -15,3 +15,7 @@ export const titleCase = (s: string) =>
 /** Suspension end from the API (ISO local date-time) for display; null means indefinite. */
 export const formatSuspendedUntil = (iso: string | null) =>
   iso ? `until ${iso.replace("T", " ").slice(0, 16)}` : "indefinitely";
+
+/** Where an account's screens live: customers under /accounts, staff under /staff/accounts. */
+export const accountHref = (kind: "customer" | "staff", accountNumber: string, tail = "") =>
+  `${kind === "staff" ? "/staff" : ""}/accounts/${encodeURIComponent(accountNumber)}${tail}`;

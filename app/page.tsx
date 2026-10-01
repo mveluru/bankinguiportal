@@ -50,7 +50,7 @@ export default function HomePage() {
           <h2>Your accounts ({data.totalActiveAccounts} active, {data.totalSuspendedAccounts} suspended)</h2>
           {data.accounts.length === 0 ? (
             <p className="muted">
-              No accounts yet. <Link href="/accounts/open">Open one</Link>.
+              No accounts yet. Visit a branch to open one; staff open accounts for customers at the office.
             </p>
           ) : (
             <div className="grid">

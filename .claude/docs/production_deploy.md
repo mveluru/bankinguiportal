@@ -15,10 +15,9 @@ machine; then skip the copy step.
 | `.next/` (without `cache/` and `dev/`) | The compiled app. About 3 MB packed; with `cache/` and `dev/` it is over 500 MB. |
 | `public/` | Static files served as is. |
 | `package.json`, `package-lock.json` | So the target can install the exact runtime packages. |
-| `next.config.ts` | Read at start-up (it holds the `/api/banking` rewrite). It loads fine without TypeScript installed. |
+| `next.config.ts` | Read at start-up (currently an empty config). It loads fine without TypeScript installed. |
 
-Leave out: `node_modules/` (installed on the target), `.env.local` (set variables on the host), `.data/` (runtime
-state, lives on the server), `.git/`, and source folders (`app/`, `components/`, `lib/`), which are already compiled
+Leave out: `node_modules/` (installed on the target), `.env.local` (set variables on the host), `.git/`, and source folders (`app/`, `components/`, `lib/`), which are already compiled
 into `.next/`.
 
 ## Prerequisites
@@ -41,13 +40,11 @@ git checkout <tag-or-commit>      # build a specific commit, never "whatever is 
 npm ci                            # exact versions from package-lock.json; includes dev tools needed for the build
 ```
 
-`NEXT_PUBLIC_*` variables are baked into the browser bundle during the build, so set them now, for the *production*
-backend address. Changing them later needs a rebuild.
+`NEXT_PUBLIC_*` variables are baked into the browser bundle during the build, so set them now. Changing them later needs a
+rebuild. (The backend address is *not* one of them: only the Next server calls the backend.)
 
 ```bash
-export NEXT_PUBLIC_API_BASE_URL=https://bank.example.com/brite
-export NEXT_PUBLIC_CUSTOMER_ID=portal          # rate-limit key only
-export NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
+export NEXT_PUBLIC_SESSION_WARNING_SECONDS=120   # countdown before the backend token expires
 export NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120    # sign out after this much inactivity
 ```
 
@@ -91,8 +88,8 @@ this `node_modules/` at run time.
 
 Templates for each environment are in the repo: `.env.staging.brite` and `.env.prod.brite`. Copy one to the host
 (`cp .env.prod.brite /etc/bankinguiportal.env`), replace every `CHANGE_ME`, and `chmod 600` it. Staging and production
-must use different `AUTH_SECRET`, `DEMO_USERS` and backend URLs. The app does not reject a placeholder secret, so check
-that no `CHANGE_ME` is left: `grep CHANGE_ME /etc/bankinguiportal.env` should print nothing.
+must use different backend URLs (never point staging at production data). Check that no `CHANGE_ME` is left:
+`grep CHANGE_ME /etc/bankinguiportal.env` should print nothing.
 
 Put the variables in a file outside the release, for example `/etc/bankinguiportal.env` (mode `600`, owned by the
 service user). Do not reuse `.env.local` from a laptop.
@@ -100,18 +97,14 @@ service user). Do not reuse `.env.local` from a laptop.
 ```bash
 NODE_ENV=production
 PORT=3000
-# Required. A long random string; generate with: openssl rand -base64 48
-# Changing it later signs everyone out and disables existing 2FA setups.
-AUTH_SECRET=...
-# Replace the defaults, which are public. Format: username:password:customerId[:admin], comma separated.
-DEMO_USERS=Admin:<strong-password>:CUST-ADMIN:admin,...
-# Read when the server starts: where /api/banking/* is forwarded.
+# The banking service, called by the Next server only (the browser never calls it). Read when the server starts.
 BANKING_BACKEND_URL=http://banking.internal:8081/brite
-SESSION_MAX_AGE_SECONDS=28800
-REMEMBER_ME_MAX_AGE_SECONDS=2592000
-LOCKOUT_MAX_ATTEMPTS=5
-LOCKOUT_MINUTES=15
-# Optional: SUPPORT_EMAIL, LEGAL_ENTITY_NAME, LEGAL_GOVERNING_LAW, LEGAL_REVIEWED, AUDIT_MAX_BYTES
+BFF_PORTAL_PATH=/bff/v1/portal
+BFF_STAFF_PATH=/bff/v1/staff
+# The token lifetime and signing key are the BACKEND's settings (banking.jwt.expiration-minutes, BANKING_JWT_SECRET).
+NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
+NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120
+# Optional: SUPPORT_EMAIL, LEGAL_ENTITY_NAME, LEGAL_GOVERNING_LAW, LEGAL_REVIEWED
 ```
 
 Which variables are read when:
@@ -119,22 +112,15 @@ Which variables are read when:
 | When | Variables |
 |---|---|
 | Build time (step 2) | `NEXT_PUBLIC_*` |
-| Server start | everything else, including `BANKING_BACKEND_URL` and `AUTH_SECRET` |
+| Server start | everything else, including `BANKING_BACKEND_URL` |
 
 The full list, with defaults, is in `.env.local.brite`.
 
-## Step 7: Make `.data/` persistent
+## Step 7: Nothing to persist
 
-The app writes users, 2FA, lockouts, preferences, notifications and the audit log to `.data/` **under the working
-directory**. Each release directory is new, so link it to a shared directory:
-
-```bash
-ln -s /opt/bankinguiportal/data /opt/bankinguiportal/releases/$VERSION/.data
-sudo chown -R bankui:bankui /opt/bankinguiportal/data && sudo chmod 700 /opt/bankinguiportal/data
-```
-
-Skip this and every release starts with empty state (password changes, 2FA setups and the audit log are lost). Back
-the directory up; in Docker, mount a volume at `/app/.data`.
+The portal keeps no state on disk: no users, sessions or logs. Identity lives in the banking service, and the sign-in
+tokens are in the users' browsers. Releases can be swapped freely, and signing in again is only needed when the backend's
+token expires or its signing key (`BANKING_JWT_SECRET`) changes.
 
 ## Step 8: Start it
 
@@ -184,15 +170,14 @@ server {
   location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $remote_addr;   # audit-log client IP; only trust it behind your own proxy
+    proxy_set_header X-Forwarded-For $remote_addr;   # rate-limit key before sign-in; only trust it behind your own proxy
     proxy_set_header X-Forwarded-Proto https;
   }
 }
 ```
 
-Also in the banking backend: add the portal's origin (for example `https://portal.example.com`) to
-`banking.portal.allowed-origins`. The browser calls the BFF endpoints directly, so CORS must allow it. The backend does
-not authenticate requests, so keep it off the public internet.
+The banking backend needs no CORS entry for this portal: only the Next server calls it, so it can stay on an internal
+address and off the public internet. The BFF endpoints it serves require the JWT it issues.
 
 ## Step 10: Verify, and know how to roll back
 
@@ -201,15 +186,15 @@ Checks (all passed in the trial run):
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://portal.example.com/login   # 200
 curl -s -o /dev/null -w "%{http_code}\n" https://portal.example.com/help    # 200 (public)
-curl -s -o /dev/null -w "%{http_code}\n" https://portal.example.com/api/banking/v1/api/accounts/x/statement
-                                                                              # 401 when signed out
+curl -s -o /dev/null -w "%{http_code}\n" https://portal.example.com/api/portal/home
+                                                                              # 401 when signed out (from the backend)
 ```
 
-Then sign in in a browser and open an account overview. If that loads, the browser-to-backend (CORS) path works; the
-deposit, withdraw, statement and close screens use the `/api/banking` proxy and so exercise `BANKING_BACKEND_URL`.
-Sign in as a non-admin and confirm `/admin/users` redirects to the home page.
+Then sign in as a customer in a browser and open an account overview: that exercises `BANKING_BACKEND_URL` end to end.
+Sign in on `/staff/login` as an employee and confirm the dashboard shows the role's privileges; a customer opening `/staff`
+should land back on the customer home page.
 
-Rollback: point `current` at the previous release and restart. `.data/` is shared, so state is untouched.
+Rollback: point `current` at the previous release and restart.
 
 ```bash
 sudo ln -sfn /opt/bankinguiportal/releases/<previous-version> /opt/bankinguiportal/current
@@ -226,8 +211,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
+ENV NEXT_PUBLIC_SESSION_WARNING_SECONDS=$NEXT_PUBLIC_SESSION_WARNING_SECONDS
 RUN npm run build
 
 FROM node:22-slim
@@ -241,17 +226,16 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-Run with `-v portal-data:/app/.data --env-file bankinguiportal.env -p 3000:3000`. Add a `.dockerignore` that lists
-`node_modules`, `.next`, `.data`, `.env*` and `.git`, so they are not sent to the build.
+Run with `--env-file bankinguiportal.env -p 3000:3000`. Add a `.dockerignore` that lists
+`node_modules`, `.next`, `.env*` and `.git`, so they are not sent to the build.
 
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
 | Sign-in succeeds but the next page returns to `/login` | Served over HTTP; the `Secure` cookie is dropped. Use HTTPS. |
-| Everyone is signed out after a restart or release | `AUTH_SECRET` changed, or differs between instances. Keep one stable value. |
-| Users, 2FA or audit history disappear after a release | `.data/` is not shared across releases (step 7). |
-| Browser calls go to `localhost:8081` | `NEXT_PUBLIC_API_BASE_URL` was not set at build time; rebuild. |
-| Account data loads but deposit/withdraw fail | `BANKING_BACKEND_URL` is wrong or unreachable from the server. |
-| Account data fails with a network error | The backend's `banking.portal.allowed-origins` lacks the portal origin, or the backend is down or rate limiting (a 429 shows as a network error). |
+| Everyone is signed out | The backend restarted with a random signing key (`BANKING_JWT_SECRET` blank) or the key differs between backend instances; or the 30-minute token simply expired. |
+| Every call returns 502 "Cannot reach the banking service" | `BANKING_BACKEND_URL` is wrong or unreachable from the Next server. |
+| Every call returns 400 about a missing header, or 429 | The backend's rate limiter (`X-Customer-Id`, 1,000 requests per customer per day by default). |
+| A customer or employee gets 403 on everything | They are using the wrong portal (customer token on `/staff`, or the reverse), or their login is not `ACTIVE`. |
 | `npm ci` fails: lock file out of sync | `package.json` was changed without updating `package-lock.json`; run `npm install` locally and commit both. |

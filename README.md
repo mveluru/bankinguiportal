@@ -1,35 +1,57 @@
 # Brite Banking UI Portal
 
 Next.js (App Router, React 19, TypeScript) front end for the banking module of
-[bankingservices](https://github.com/mveluru/bankingservices). It talks only to the
-backend's BFF endpoints (`/bff/v1/portal/*`), one call per screen.
+[bankingservices](https://github.com/mveluru/bankingservices). It has two portals on the backend's BFF endpoints: a
+**customer portal** (`/bff/v1/portal/*`) and a **staff portal** (`/bff/v1/staff/*`, under `/staff` here). The backend
+issues the JWTs and enforces every rule; the portal holds no users of its own.
 
-| Screen | Route | BFF call |
+The browser only calls this app's own `/api/*` route handlers. They keep the JWT in an httpOnly cookie and forward to the
+BFF with `Authorization: Bearer`, so scripts in the page never see the token.
+
+### Customer portal
+
+| Screen | Route | Backend call (via `/api/portal/*`) |
 |---|---|---|
-| Sign in (demo) | `/login` | `POST /api/auth/login` (Next route handler, not the backend) |
-| Terms of Use and Privacy Policy (public; linked from the footer on every page) | `/terms`, `/privacy` | none (server components) |
+| Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
+| Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
+| Home (accounts + branches/ATMs, state filter) | `/` | `GET /portal/home?state=` |
+| Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
+| Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
+| Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
+| Close account (typed confirmation plus Yes/No dialog, irreversible) | `/accounts/[accountNumber]/close` | `POST /portal/accounts/{n}/close` |
+| Settings: appearance (system/light/dark), links to password and security questions | `/settings` | none |
+| Change password (8 digits; signs you out everywhere) | `/settings/password` | `PUT /portal/password` |
+| Security questions (choose and answer three) | `/settings/security-questions` | `GET /portal/security-questions/catalog`, `PUT /portal/security-questions` |
+
+Customers cannot open, suspend or reactivate accounts: those are staff-only in the backend.
+
+### Staff portal (employees; what you see depends on your role's privileges)
+
+| Screen | Route | Backend call (via `/api/staff/*`) |
+|---|---|---|
+| Staff sign in | `/staff/login` | `POST /staff/login` (via `/api/auth/login`) |
+| Forgot password | `/staff/forgot-password` | `POST /staff/password-reset/questions`, `POST /staff/password-reset` |
+| Dashboard: your role, privileges, branch, account lookup | `/staff` | none (from the sign-in response) |
+| Account overview for any account (VIEW_ACCOUNT) | `/staff/accounts/[accountNumber]` | `GET /staff/accounts/{n}/overview?days=` |
+| Deposit / Withdraw (DEPOSIT / WITHDRAW; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
+| Suspend, change or lift a suspension (SUSPEND_ACCOUNT, UPDATE_SUSPENSION, REACTIVATE_ACCOUNT) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension`, `POST .../reactivate` |
+| Close account (CLOSE_ACCOUNT, irreversible) | `/staff/accounts/[accountNumber]/close` | `POST /staff/accounts/{n}/close` |
+| Open an account for a customer (OPEN_ACCOUNT) | `/staff/accounts/open` | `POST /staff/accounts/open` |
+| Customer logins: create, set status, set password (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `POST /staff/customers/{id}/login`, `PUT .../login-status`, `PUT .../password` |
+| User management: employees list by role (MANAGE_EMPLOYEES) | `/staff/employees` | `GET /staff/employees?role=&page=&size=` |
+| One employee: card, set login status, set password (MANAGE_EMPLOYEES) | `/staff/employees/[employeeNumber]` | `GET /staff/employees/{n}`, `PUT .../login-status`, `PUT .../password` |
+| Settings, change password, security questions | `/staff/settings`, `/password`, `/security-questions` | `PUT /staff/password`, `PUT /staff/security-questions` |
+
+### Both
+
+| Screen | Route | Backend call |
+|---|---|---|
+| Terms of Use and Privacy Policy (public; linked from the footer) | `/terms`, `/privacy` | none (server components) |
 | Help & FAQ (public, searchable, deep-linkable e.g. `/help#locked-out`) | `/help` | none (server component; `SUPPORT_EMAIL` optional) |
-| Settings hub: appearance (system/light/dark), default activity window, notification categories, links to profile/password/2FA/activity | `/settings` | `GET/PUT /api/auth/preferences` (Next route handlers) |
-| Profile (demo: username, customer ID, editable display name + email) | `/settings/profile` | `GET/PUT /api/auth/profile` (Next route handlers) |
-| Two-factor authentication (TOTP): setup + QR, recovery codes, turn off | `/settings/two-factor` | `/api/auth/2fa/{status,setup,enable,disable}` (Next route handlers) |
-| Sign-in code step | `/login/verify` | `POST /api/auth/2fa/verify` |
-| Notifications (plain-language security/account updates, unread badge in the nav) | `/notifications` | `GET/POST /api/auth/notifications` (Next route handlers) |
-| Sign-in activity (audit log of your own events) | `/settings/activity` | `GET /api/auth/activity` (Next route handler) |
-| Admin: user management (admins only): list, unlock, reset 2FA, disable/enable | `/admin/users` | `GET /api/admin/users`, `POST /api/admin/users/{username}` (Next route handlers) |
-| Change password (demo) | `/settings/password` | `POST /api/auth/password` (Next route handler) |
-| Forgot / reset password (demo) | `/forgot-password`, `/reset-password?token=` | `POST /api/auth/forgot`, `POST /api/auth/reset` (Next route handlers) |
-| Home (accounts + branches/ATMs, state filter) | `/` | `GET /home?state=` |
-| Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /accounts/{n}/overview?days=` |
-| Open account | `/accounts/open` | `POST /accounts/open` |
-| Deposit | `/accounts/[accountNumber]/deposit` | `POST /bff/v1/portal/accounts/deposit` |
-| Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /bff/v1/portal/accounts/{n}/statement?beginDate=&endDate=` |
-| Suspend; manage suspension / reactivate (admins only once suspended) | `/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension`, `POST .../reactivate` (BFF) |
-| Close account (typed confirmation plus Yes/No dialog, irreversible) | `/accounts/[accountNumber]/close` | `POST /bff/v1/portal/accounts/{n}/close` |
-| Withdraw | `/accounts/[accountNumber]/withdraw` | `POST /bff/v1/portal/accounts/withdraw` |
 
 ## Run
 
-1. Start the backend (port 8081, context path `/brite`). It already allows `http://localhost:3000` via `banking.portal.allowed-origins`.
+1. Start the backend (port 8081, context path `/brite`). The browser never calls it, so no CORS setup is needed.
 2. `cp .env.local.brite .env.local` (defaults are fine locally)
 3. `npm install && npm run dev` → http://localhost:3000
 
@@ -62,11 +84,12 @@ The backend (port 8081) is a separate process; stopping the portal does not stop
 
 ### End-to-end tests
 
-`npm run test:e2e` logs in and checks the home and account screens in Chrome, and that the close-account page asks
-Yes/No before closing. It needs the backend running and Google Chrome installed. It reuses a dev server already on
-port 3000, or starts one. The specs never change data (no deposit, withdraw, suspend or statement, and the close
-spec only clicks No, so the account stays open). Override the defaults with `E2E_USER`, `E2E_PASSWORD`,
-`E2E_ACCOUNT` and `E2E_PORT`.
+`npm run test:e2e` runs against the real backend in Chrome (needs the backend running and Google Chrome installed). It
+reuses a dev server already on port 3000, or starts one. It signs in with the backend's demo data
+(`customer0001` / `20260001`, who owns `CH-0000088291`, and the area manager `priya.raman` / `20260001`), checks the home,
+account and staff screens, the idle logout and the close-account Yes/No dialog. Only `e2e/suspended.spec.ts` changes
+data (staff suspend, then reactivate, an account); it skips itself unless the account is active. Override the defaults
+with `E2E_USER`, `E2E_PASSWORD`, `E2E_STAFF_USER`, `E2E_STAFF_PASSWORD`, `E2E_ACCOUNT` and `E2E_PORT`.
 
 ## Deploy
 
@@ -104,20 +127,16 @@ Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, 
 
 ### Production checklist
 
-- **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. Required in
-  production: `AUTH_SECRET` (a long random string; changing it later disables existing 2FA setups). Also set
-  `DEMO_USERS` (the default demo passwords are public), `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_BFF_PORTAL_PATH` (BFF path prefix, default `/bff/v1/portal`, build time), `BANKING_BACKEND_URL` and any of
-  the optional ones in `.env.local.brite`.
-- **Build-time vs start-time:** `NEXT_PUBLIC_*` values are baked into the browser bundle during `npm run build`, so set
-  them *before* building. `BANKING_BACKEND_URL` and the other server variables are read when the server starts.
-- **Persistent `.data/`:** users, 2FA, lockouts, preferences and the audit log live in `.data/` under the working
-  directory. Mount a persistent, writable volume there, or a redeploy or container restart loses them.
-- **Banking backend:** it must be reachable from the browser (for `NEXT_PUBLIC_API_BASE_URL`, with this site's origin
-  in its `banking.portal.allowed-origins`) and from the Next server (for `BANKING_BACKEND_URL`). It does not
-  authenticate requests, so restrict network access to it.
-- **HTTPS:** serve behind a TLS-terminating proxy; the session cookie is marked Secure in production. Client IPs in the
-  audit log come from `X-Forwarded-For` / `X-Real-IP`, which are only trustworthy behind a proxy you control.
-- **Login is a front-end-only demo**, not real security (see Notes below). It is not suitable for real customers as is.
+- **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. The one that matters is
+  `BANKING_BACKEND_URL` (the banking service, read when the server starts); see `.env.prod.brite` for the rest.
+  `NEXT_PUBLIC_*` values (`NEXT_PUBLIC_SESSION_WARNING_SECONDS`, `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS`) are baked into the
+  browser bundle during `npm run build`, so set them *before* building.
+- **No state on disk:** the portal keeps no users, sessions or logs of its own, so there is nothing to persist or back up.
+- **Banking backend:** only the Next server calls it, so it can sit on an internal address. The browser never needs
+  access, and `banking.portal.allowed-origins` (CORS) is not used by this portal. The JWT signing key
+  (`BANKING_JWT_SECRET`) and token lifetime (`banking.jwt.expiration-minutes`, 30) are the backend's settings.
+- **HTTPS:** serve behind a TLS-terminating proxy; the sign-in cookies are marked Secure in production, so over plain
+  HTTP sign-in appears to loop. The portal passes `X-Forwarded-For` to the backend's rate limiter before sign-in.
 
 ## Docs
 
@@ -125,8 +144,28 @@ Architecture and per-layer reference live in [`.claude/docs/`](.claude/docs/inde
 for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one `SKILL.md` per layer.
 
 ## Notes
-- Withdraw and deposit use BFF endpoints (they return the refreshed overview). Statement and close do too, so every banking call goes to `/bff/**`; the `/api/banking/*` rewrite in `next.config.ts` (and `BANKING_BACKEND_URL`) is no longer used by any screen. The backend validates the holder's name and address but doesn't use them, so the forms collect them (names are prefilled).
-- **Login is a front-end-only demo, not real security.** Users come from `DEMO_USERS` (`username:password:customerId,...`, default `demo` / `demo1234`); the session is an HMAC-signed httpOnly cookie (`AUTH_SECRET`, required in production). `proxy.ts` redirects signed-out visitors to `/login` and returns 401 for `/api/banking/*`. Sessions last `SESSION_MAX_AGE_SECONDS` (default 8h); `NEXT_PUBLIC_SESSION_WARNING_SECONDS` (default 120) before expiry a countdown dialog offers "Stay signed in" (re-issues the cookie via `/api/auth/refresh`) and the user is signed out automatically at expiry. Independently, `components/IdleLogout.tsx` signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab and lands on `/login?expired=1`. Security events (sign-in success/failure/blocked, lockouts, 2FA steps, sign-out, timeout, password and 2FA changes) are appended as JSON lines to `.data/audit.log` (gitignored, rotated to `audit.log.1` past `AUDIT_MAX_BYTES`, default 1 MB); no passwords, codes or tokens are ever logged. Each user sees only their own events on the activity screen, which flags failed attempts since their previous sign-in. IP comes from `X-Forwarded-For`/`X-Real-IP` when present and is only trustworthy behind a proxy you control. Users can be admins via a fourth `DEMO_USERS` field (`username:password:customerId:admin`). `/api/admin/*` is the real access control (401 signed out, 403 for non-admins, role read from configuration on every request, refusals audited); the UserMgnt nav link is convenience. Admins can unlock a user, reset their 2FA and disable/enable them (not themselves). Disabling signs the user out everywhere immediately: sessions carry an issued-at time and `verifySessionToken` rejects any session for a disabled account or issued before its `revokedBefore` marker (state in `.data/accounts.json`); an open tab notices on its next request. Every action is audited on both the admin's and the affected user's history. The user list never includes passwords, hashes or secrets; each view is recorded in the audit log. The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only strictly necessary cookies plus the theme you pick, which don't need consent, and "Accept/Reject" for cookies that don't exist would be misleading. It's dismissible, remembered in localStorage (`cookie_notice_ack`, versioned so a bump re-shows it) and never server-rendered, so returning visitors get no flash. If you ever add analytics or marketing cookies, replace it with real per-category consent and don't set them until the visitor opts in. Terms (`/terms`) and Privacy (`/privacy`) are public server components in `lib/legal.ts`: the Privacy Policy describes what the portal actually stores, sets and shows (audit log, cookies, admin visibility) and quotes live config for durations; the Terms are a standard template. Both show a visible "template" notice until `LEGAL_REVIEWED=true`; entity name, contact (`SUPPORT_EMAIL`) and an optional governing-law clause come from env. Update `LAST_UPDATED` whenever the wording changes and get the text reviewed by a lawyer before relying on it. Help & FAQ (`/help`) is public so people who can't sign in can reach it. It renders per request and reads the same env vars as the app (lockout, session and remember-me lengths, ...), so its answers can't drift from the behaviour; bank rules that live in the banking service (cash limit, minimum balances, statement range) are quoted as its defaults. Settings (`/settings`) stores per-user preferences in `.data/preferences.json`: a default activity window (7/30/60/90 days, used by the account overview and as the statement's default start date) and which optional notification categories to show. Security-critical notifications can't be muted. The theme choice (System/Light/Dark) is per device, in localStorage. Notifications are a curated view over the same audit log (new-device sign-ins, failed attempts before you signed in, lockouts, password/2FA changes, admin actions on your account), so nothing is stored per notification; each user's only state is a "read up to" timestamp in `.data/notifications.json`. Failed passwords lock a username after `LOCKOUT_MAX_ATTEMPTS` (5) failures for `LOCKOUT_MINUTES` (15): sign-in, change-password and turn-off-2FA share the counter, unknown usernames are counted too (so a lock doesn't reveal which accounts exist), a locked name is refused even with the right password (HTTP 429 + `Retry-After`), and a successful sign-in or password reset clears it. Anyone can lock a known username on purpose; the reset link is the escape hatch. State is in `.data/lockouts.json`. Two-factor auth is standard TOTP (RFC 6238; any authenticator app). With it on, a correct password only sets a 5-minute signed *pending* cookie, and the session is issued after `/login/verify` accepts a code or a one-time recovery code. Codes can't be replayed, 5 failures lock the account's 2FA for 5 minutes, secrets are AES-256-GCM encrypted with a key derived from `AUTH_SECRET` (so changing it disables existing 2FA setups), and state lives in `.data/twofactor.json`. Turning it off needs the password plus a code. "Remember me" on the sign-in form issues a persistent cookie lasting `REMEMBER_ME_MAX_AGE_SECONDS` (default 30 days); without it the cookie is dropped when the browser closes and the normal session length applies. The choice is kept across "Stay signed in". Sessions are stateless, so they can't be revoked server-side. Profile edits are saved in `.data/profiles.json`. Changed passwords are saved as scrypt hashes in `.data/users.json` (gitignored) and override `DEMO_USERS`; delete that file to reset. Forgot password has no email service: the reset link is printed to the `next dev` console (single-use, 30 min, hashed in `.data/resets.json`), and the response never reveals whether a username exists. Existing sessions stay valid after a change (stateless cookie). The logged-in user's `customerId` is sent as `X-Customer-Id`, but the backend still doesn't authenticate anything, and its BFF endpoints are reachable directly. Real auth needs to be added to the Spring service (see the backend's BFF "Auth (not built yet)" note).
-- `X-Customer-Id` is only a rate-limit key.
-- A 429 from the backend has no CORS headers, so the browser reports it as a network error; the UI words its error message accordingly.
-- Next ideas: remove the unused `/api/banking` proxy config, login.
+- **Sign-in is the backend's.** `POST /api/auth/login` calls `/bff/v1/portal/login` or `/bff/v1/staff/login` and stores the
+  returned JWT in the httpOnly `bank_token` cookie (lifetime = the token's own `exp`; the backend issues 30 minutes, no
+  refresh). A second httpOnly cookie, `bank_profile`, holds the name, role, privileges and branch for display. Neither is
+  trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting
+  an employee or changing a password applies at once. Passwords are exactly 8 digits.
+- **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to
+  the matching sign-in page. It reads only the token's type and expiry; the backend is the real access control (a customer
+  token on a staff call is 403, and vice versa). The UI hides actions the role lacks, but never relies on that.
+- **Session end.** `components/SessionTimeout.tsx` counts down to the token's expiry (`NEXT_PUBLIC_SESSION_WARNING_SECONDS`,
+  default 120) and signs out at expiry; there is no "stay signed in" because the backend has no refresh. Independently,
+  `components/IdleLogout.tsx` signs out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any
+  tab and lands on the sign-in page with `?expired=1`. Changing a password revokes every earlier token, so the portal
+  signs the user out and asks them to sign in again.
+- **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
+  reset never undoes a lock or suspension an employee set.
+- `X-Customer-Id` is the backend gateway's rate-limit key, sent by the route handlers (customer id, employee number, or
+  the caller's IP before sign-in). A 429 from the backend reaches the browser as a normal 429 message.
+- The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only
+  strictly necessary cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server
+  components in `lib/legal.ts`, with a visible "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED`
+  whenever the wording changes. Help & FAQ (`/help`) is public and renders per request.
+- Withdraw and deposit validate the holder's name and address in the backend but do not use them, so the forms collect
+  them (names are prefilled).
+- The demo data of the backend's `db/data` seeds (customer logins `customer0001`.. with password `2026` + sequence, employee
+  logins named after the email, e.g. `priya.raman`) is for local use only.

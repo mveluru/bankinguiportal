@@ -1,30 +1,19 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser } from "@playwright/test";
+import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
 
-// Changes data: suspends ACCOUNT as a regular user, then reactivates it as an admin (also in cleanup).
-// Needs an ACTIVE account. Override the defaults with E2E_ADMIN_USER / E2E_ADMIN_PASSWORD.
-const USER = process.env.E2E_USER ?? "demo";
-const PASSWORD = process.env.E2E_PASSWORD ?? "demo1234";
-const ADMIN = process.env.E2E_ADMIN_USER ?? "Admin";
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "admin1234";
-const ACCOUNT = process.env.E2E_ACCOUNT ?? "CH-0000088291";
+// Changes data: a staff manager suspends ACCOUNT, then reactivates it (also in cleanup). Needs an ACTIVE account, so it
+// skips itself when ACCOUNT is already suspended or closed rather than guessing what state to restore.
+// Customers can't suspend or reactivate; only staff can.
 
-async function signIn(page: Page, username: string, password: string) {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
-}
-
-async function reactivateAsAdmin(browser: Browser) {
+async function reactivate(browser: Browser) {
   const context = await browser.newContext();
   const page = await context.newPage();
   try {
-    await signIn(page, ADMIN, ADMIN_PASSWORD);
-    await page.goto(`/accounts/${ACCOUNT}/suspend`);
-    const reactivate = page.getByRole("button", { name: "Reactivate account" });
-    if (await reactivate.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await reactivate.click();
+    await signInStaff(page);
+    await page.goto(`/staff/accounts/${ACCOUNT}/suspend`);
+    const button = page.getByRole("button", { name: "Reactivate account" });
+    if (await button.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await button.click();
       await expect(page.getByText("Account reactivated.")).toBeVisible();
     }
   } finally {
@@ -32,35 +21,34 @@ async function reactivateAsAdmin(browser: Browser) {
   }
 }
 
-test("suspended account is read-only for a regular user; an admin can reactivate it", async ({ page, browser }) => {
-  try {
-    await signIn(page, USER, PASSWORD);
-    await page.goto(`/accounts/${ACCOUNT}/suspend`);
-    await page.getByLabel(/Reason \/ notes/).fill("e2e suspended-account spec");
-    await page.getByRole("button", { name: "Suspend account" }).click();
-    await expect(page.getByText("Account suspended.")).toBeVisible();
+test("staff suspend an account, the customer sees it read-only, staff reactivate it", async ({ page, browser }) => {
+  const staff = await browser.newContext();
+  const manager = await staff.newPage();
+  await signInStaff(manager);
+  await manager.goto(`/staff/accounts/${ACCOUNT}`);
+  await expect(manager.locator(".balance")).toBeVisible();
+  test.skip(!(await manager.getByRole("link", { name: "Suspend account" }).isVisible()), `${ACCOUNT} is not an active account`);
 
-    // Regular user: read-only account page and no way into the suspension screen.
+  try {
+    await manager.goto(`/staff/accounts/${ACCOUNT}/suspend`);
+    await manager.getByLabel(/Reason \/ notes/).fill("e2e suspended-account spec");
+    await manager.getByRole("button", { name: "Suspend account" }).click();
+    await expect(manager.getByText("Account suspended.")).toBeVisible();
+
+    // The customer: read-only account page, no deposit/withdraw, and nowhere to lift the suspension.
+    await signInCustomer(page);
     await page.goto(`/accounts/${ACCOUNT}`);
     await expect(page.getByText(/read-only/).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Manage suspension" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Deposit" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Withdraw" })).toHaveCount(0);
-    await page.goto(`/accounts/${ACCOUNT}/suspend`);
-    await expect(page.getByText("Only an administrator can change or lift the suspension.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reactivate account" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /suspen/i })).toHaveCount(0);
 
-    // Admin: can open the suspension screen and reactivate.
-    const adminContext = await browser.newContext();
-    const admin = await adminContext.newPage();
-    await signIn(admin, ADMIN, ADMIN_PASSWORD);
-    await admin.goto(`/accounts/${ACCOUNT}`);
-    await expect(admin.getByRole("link", { name: "Manage suspension" })).toBeVisible();
-    await admin.getByRole("link", { name: "Manage suspension" }).click();
-    await admin.getByRole("button", { name: "Reactivate account" }).click();
-    await expect(admin.getByText("Account reactivated.")).toBeVisible();
-    await adminContext.close();
+    await manager.goto(`/staff/accounts/${ACCOUNT}`);
+    await manager.getByRole("link", { name: "Manage suspension" }).click();
+    await manager.getByRole("button", { name: "Reactivate account" }).click();
+    await expect(manager.getByText("Account reactivated.")).toBeVisible();
   } finally {
-    await reactivateAsAdmin(browser);
+    await staff.close();
+    await reactivate(browser);
   }
 });

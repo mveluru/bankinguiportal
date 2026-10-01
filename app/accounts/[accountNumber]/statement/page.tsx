@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { useAuth } from "@/components/AuthProvider";
 import { getStatement } from "@/lib/api";
 import { formatMoney, titleCase } from "@/lib/format";
 import type { BankStatement } from "@/lib/types";
@@ -16,11 +15,10 @@ const iso = (d: Date) => {
 
 export default function StatementPage() {
   const { accountNumber } = useParams<{ accountNumber: string }>();
-  const { user } = useAuth();
   const today = new Date();
-  // Start date defaults to the user's "default activity window" setting until they pick one.
+  // Start date defaults to 30 days back until they pick one.
   const [chosenBegin, setBegin] = useState<string | null>(null);
-  const begin = chosenBegin ?? iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - (user?.activityDays ?? 30)));
+  const begin = chosenBegin ?? iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30));
   const [end, setEnd] = useState(iso(today));
   const [statement, setStatement] = useState<BankStatement | null>(null);
   const [error, setError] = useState<string | null>(null);

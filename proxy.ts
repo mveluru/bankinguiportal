@@ -1,39 +1,35 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
-import { roleOf } from "@/lib/users";
+import { TOKEN_COOKIE, homeOf, tokenKind } from "@/lib/session";
 
-const PUBLIC_PAGES = ["/forgot-password", "/reset-password", "/help", "/terms", "/privacy"];
+const PUBLIC_PAGES = ["/forgot-password", "/staff/forgot-password", "/help", "/terms", "/privacy"];
+const LOGIN_PAGES = ["/login", "/staff/login"];
 
-/** Gate every page and the /api/banking proxy behind the demo session (login + auth endpoints stay open). */
-export async function proxy(request: NextRequest) {
+/**
+ * Routes each signed-in user to their own portal and everyone else to a sign-in page. It only reads the token's
+ * kind and expiry (not its signature): the real checks are the backend's, on every call. /api/* is not gated here.
+ */
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const kind = tokenKind(request.cookies.get(TOKEN_COOKIE)?.value);
+  const staffArea = pathname === "/staff" || pathname.startsWith("/staff/");
 
-  // Reachable signed out or in (a reset link should work in any browser state; help and the legal pages are public
-  // because the people who can't sign in are exactly who needs them).
   if (PUBLIC_PAGES.includes(pathname)) return NextResponse.next();
 
-  if (pathname === "/login" || pathname === "/login/verify") {
-    return session ? NextResponse.redirect(new URL("/", request.url)) : NextResponse.next();
+  if (LOGIN_PAGES.includes(pathname)) {
+    return kind ? NextResponse.redirect(new URL(homeOf(kind), request.url)) : NextResponse.next();
   }
-  if (session) {
-    // Admin pages are for admins only. The role is read from configuration, not the token. /api/admin/* is checked
-    // again in the handlers (requireAdmin), which is the real access control; this keeps everyone else off the page.
-    if ((pathname === "/admin" || pathname.startsWith("/admin/")) && roleOf(session.username) !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-    return NextResponse.next();
+  if (kind) {
+    // Customers stay out of /staff, and staff use /staff instead of the customer screens.
+    const home = homeOf(kind);
+    return (kind === "staff") === staffArea ? NextResponse.next() : NextResponse.redirect(new URL(home, request.url));
   }
 
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ message: "Not signed in." }, { status: 401 });
-  }
-  const login = new URL("/login", request.url);
-  if (pathname !== "/") login.searchParams.set("next", pathname);
+  const login = new URL(staffArea ? "/staff/login" : "/login", request.url);
+  if (pathname !== "/" && pathname !== "/staff") login.searchParams.set("next", pathname);
   return NextResponse.redirect(login);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
 };

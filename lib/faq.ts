@@ -1,7 +1,5 @@
-import { duration, num, plural } from "@/lib/duration";
-import { RESET_TTL_MINUTES } from "@/lib/resets";
-import { LOCKOUT_MS, MAX_FAILURES } from "@/lib/twofactor";
-import { MIN_PASSWORD_LENGTH } from "@/lib/users";
+import { duration, num } from "@/lib/duration";
+import { PASSWORD_HINT } from "@/lib/passwords";
 
 export interface Faq {
   id: string; // also the URL fragment, e.g. /help#locked-out
@@ -16,23 +14,20 @@ export const FAQ_CATEGORIES = [
   "Getting started",
   "Signing in & security",
   "Accounts & transactions",
-  "Notifications & settings",
+  "Settings",
+  "For staff",
   "Troubleshooting",
 ] as const;
 
 /**
- * The help content. Numbers that come from configuration (lockout, session lengths, ...) are read from the
+ * The help content. Numbers that come from configuration (timeout warning, idle logout) are read from the
  * same env vars the app itself uses, so the answers can't drift from the behaviour. Bank rules that live in the
- * banking service (cash limit, minimum balances, statement range) are quoted as its defaults. Server-side only.
+ * banking service (sign-in lockout, token lifetime, cash limit, minimum balances, statement range) are described, not quoted
+ * as portal settings. Server-side only.
  */
 export function buildFaqs(supportEmail?: string): Faq[] {
-  const attempts = num(process.env.LOCKOUT_MAX_ATTEMPTS, 5);
-  const lockMinutes = num(process.env.LOCKOUT_MINUTES, 15);
-  const session = duration(num(process.env.SESSION_MAX_AGE_SECONDS, 8 * 3600));
-  const remember = duration(num(process.env.REMEMBER_ME_MAX_AGE_SECONDS, 30 * 86400));
   const warning = duration(num(process.env.NEXT_PUBLIC_SESSION_WARNING_SECONDS, 120));
   const idle = duration(num(process.env.NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS, 120));
-  const twoFactorLock = Math.round(LOCKOUT_MS / 60_000);
 
   return [
     // ---- Getting started ----
@@ -41,7 +36,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Getting started",
       question: "What can I do in this portal?",
       answer: [
-        "View your accounts and recent activity, open a new account, deposit to and withdraw from checking and savings accounts, generate statements, find branches and ATMs, and manage your security and notification settings.",
+        "Customers can view their accounts and recent activity, deposit to and withdraw from checking and savings accounts, generate statements, close an account and find branches and ATMs. Bank staff use a separate staff portal to open accounts, suspend and reactivate them, and manage logins.",
       ],
       links: [{ href: "/", label: "Go to Home" }],
     },
@@ -50,10 +45,8 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Getting started",
       question: "How do I open an account?",
       answer: [
-        "Choose Open an account in the menu, fill in your details and pick an account type. You must meet the bank's minimum age requirement.",
-        "When it's created you'll see your new account number and the branches and ATMs in your state.",
+        "Accounts are opened by bank staff at a branch. Bring identification; the teller opens the account and a manager creates your online login, after which you can sign in here.",
       ],
-      links: [{ href: "/accounts/open", label: "Open an account" }],
     },
     {
       id: "account-number",
@@ -70,71 +63,44 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Signing in & security",
       question: "I forgot my password",
       answer: [
-        `Choose Forgot password? on the sign-in page and enter your username. If it matches an account, a reset link is sent. It works once and expires after ${plural(RESET_TTL_MINUTES, "minute")}.`,
-        "The page gives the same answer whether or not the username exists, so it can't be used to find out who has an account.",
+        "Choose Forgot password? on the sign-in page, enter your username and answer the three security questions you chose, then pick a new password.",
+        "You can only do this if you set security questions beforehand (Settings, then Security questions). Otherwise a bank employee has to set a new password for you.",
       ],
-      note: "Demo note: there is no email service yet, so the reset link is printed in the server console instead of being emailed.",
       links: [{ href: "/forgot-password", label: "Reset my password" }],
     },
     {
       id: "change-password",
       category: "Signing in & security",
       question: "How do I change my password?",
-      answer: [`Go to Settings, then Password. Enter your current password and a new one of at least ${MIN_PASSWORD_LENGTH} characters.`],
+      answer: [
+        `Go to Settings, then Password. Enter your current password and a new one: ${PASSWORD_HINT}. Changing it signs you out everywhere, so sign in again with the new one.`,
+      ],
       links: [{ href: "/settings/password", label: "Change password" }],
+    },
+    {
+      id: "security-questions",
+      category: "Signing in & security",
+      question: "What are security questions?",
+      answer: [
+        "You choose three questions from a fixed list and answer them. They are the only way you can reset a forgotten password yourself. Saving new ones replaces the old ones and needs your current password.",
+      ],
+      links: [{ href: "/settings/security-questions", label: "Set security questions" }],
     },
     {
       id: "locked-out",
       category: "Signing in & security",
-      question: "Why is my account locked?",
+      question: "Why is my login locked?",
       answer: [
-        `After ${attempts} wrong passwords in a row your username is locked for ${plural(lockMinutes, "minute")}, and during that time even the correct password is refused. It unlocks by itself, or an administrator can unlock it.`,
-        "Completing a password reset also lifts the lock. The same limit applies to guessing your current password when changing it or turning off two-factor authentication.",
+        "The bank locks a login after too many wrong passwords, or wrong security answers, in a row. A lock caused by wrong passwords ends by itself after a while; a bank employee can also lift it. While it lasts, even the correct password is refused.",
       ],
       links: [{ href: "/forgot-password", label: "Reset my password" }],
     },
     {
-      id: "account-disabled",
+      id: "login-not-active",
       category: "Signing in & security",
-      question: "It says my account has been disabled",
+      question: "It says my login is not active",
       answer: [
-        "An administrator turned your account off. You were signed out everywhere and can't sign in until it is turned back on. Contact an administrator to find out why.",
-      ],
-    },
-    {
-      id: "two-factor",
-      category: "Signing in & security",
-      question: "What is two-factor authentication and how do I turn it on?",
-      answer: [
-        "It adds a second step at sign-in: after your password you enter a 6-digit code from an authenticator app such as Google Authenticator, Authy or 1Password.",
-        "Go to Settings, then Two-factor authentication, scan the QR code and enter a code to confirm. You'll get 10 one-time recovery codes. They are shown only once, so save them somewhere safe.",
-      ],
-      links: [{ href: "/settings/two-factor", label: "Set up two-factor authentication" }],
-    },
-    {
-      id: "lost-phone",
-      category: "Signing in & security",
-      question: "I lost my phone or can't get a code",
-      answer: [
-        "On the code screen choose Use a recovery code and enter one of the codes you saved. Each one works once.",
-        "If you have no recovery codes, ask an administrator to reset your two-factor authentication, then set it up again on your new device.",
-      ],
-    },
-    {
-      id: "code-rejected",
-      category: "Signing in & security",
-      question: "My authentication code is rejected",
-      answer: [
-        `Codes change every 30 seconds and each can be used once. Make sure your phone's clock is set automatically, wait for the next code and try again. After ${MAX_FAILURES} wrong codes in a row, verification is locked for ${plural(twoFactorLock, "minute")}.`,
-      ],
-    },
-    {
-      id: "remember-me",
-      category: "Signing in & security",
-      question: "What does “Remember me on this device” do?",
-      answer: [
-        `It keeps you signed in on this device for up to ${remember}. Without it you're signed out when you close the browser, or after ${session}, whichever comes first.`,
-        "Don't use it on a shared or public computer.",
+        "A bank employee set your login to Inactive, Locked or Suspended. You can't sign in or make transactions until it is set back to Active, and the change applies at once, even if you were already signed in. Contact your branch.",
       ],
     },
     {
@@ -142,21 +108,8 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Signing in & security",
       question: "Why was I signed out?",
       answer: [
-        `Sessions last up to ${session}. About ${warning} before yours ends, a dialog with a countdown offers Stay signed in; if you don't respond you're signed out automatically. You're also signed out after ${idle} without any activity on the portal.`,
-        "An administrator disabling your account also ends your session immediately.",
-      ],
-    },
-    {
-      id: "suspicious-activity",
-      category: "Signing in & security",
-      question: "How can I tell if someone else used my account?",
-      answer: [
-        "Notifications alerts you to new-device sign-ins, failed attempts and security changes. Sign-in activity shows the full history, with the device and IP address of each event.",
-        "If anything looks wrong, change your password and turn on two-factor authentication.",
-      ],
-      links: [
-        { href: "/notifications", label: "Notifications" },
-        { href: "/settings/activity", label: "Sign-in activity" },
+        `Your sign-in lasts a limited time, set by the bank. About ${warning} before it ends a dialog counts down, and then you're signed out automatically; sign in again to continue. You're also signed out after ${idle} without any activity on the portal.`,
+        "Changing your password, or an employee suspending your login, ends your session immediately.",
       ],
     },
     {
@@ -164,7 +117,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Signing in & security",
       question: "Does the portal use cookies?",
       answer: [
-        "Only essential ones: one keeps you signed in, and a second lasts a few minutes while you enter a two-factor code. Your theme choice and the fact that you've dismissed the cookie notice are remembered in your browser's local storage.",
+        "Only essential ones: two hold your sign-in (they can't be read by scripts on the page) and are removed when you sign out. Your theme choice and the fact that you've dismissed the cookie notice are remembered in your browser's local storage.",
         "There are no advertising or analytics cookies and no third-party trackers, so there is nothing to opt out of.",
       ],
       links: [{ href: "/privacy#cookies", label: "Cookies in the Privacy Policy" }],
@@ -174,21 +127,12 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Signing in & security",
       question: "What information does the portal keep about me?",
       answer: [
-        "Your profile (display name and optional email), your security settings, your preferences, and a log of sign-in and security events with the time, IP address and device. Your accounts and transactions stay in the bank's banking service.",
-        "The Privacy Policy lists everything, why it's kept, how long, and who can see it. The Terms of Use explain the rules for using the portal.",
+        "The portal itself keeps nothing about you on its server. Your sign-in, accounts and transactions are held by the bank's banking service; the portal only passes your requests to it.",
+        "The Privacy Policy lists what is kept, why, and who can see it. The Terms of Use explain the rules for using the portal.",
       ],
       links: [
         { href: "/privacy", label: "Privacy Policy" },
         { href: "/terms", label: "Terms of Use" },
-      ],
-    },
-    {
-      id: "admins",
-      category: "Signing in & security",
-      question: "What can administrators do to my account?",
-      answer: [
-        "Administrators can see the list of users, unlock accounts, reset two-factor authentication, and disable or enable users. They can't see your password or authentication secrets.",
-        "Every action is recorded and appears in your own Sign-in activity and Notifications.",
       ],
     },
 
@@ -229,13 +173,20 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       ],
     },
     {
+      id: "suspended-account",
+      category: "Accounts & transactions",
+      question: "My account is suspended",
+      answer: [
+        "A suspended account is read-only: deposits and withdrawals are refused until a bank manager reactivates it or its end time passes. Customers can't suspend or reactivate accounts; contact your branch.",
+      ],
+    },
+    {
       id: "missing-transactions",
       category: "Accounts & transactions",
       question: "Why don't I see all my transactions?",
       answer: [
-        "An account page shows up to the 20 most recent transactions in the chosen window (7 to 90 days). Change the window on the page, or set your default in Settings. For older or complete history, generate a statement.",
+        "An account page shows up to the 20 most recent transactions in the chosen window (7 to 90 days). Change the window on the page. For older or complete history, generate a statement.",
       ],
-      links: [{ href: "/settings", label: "Settings" }],
     },
     {
       id: "close-account",
@@ -256,36 +207,42 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       links: [{ href: "/", label: "Go to Home" }],
     },
 
-    // ---- Notifications & settings ----
-    {
-      id: "notifications",
-      category: "Notifications & settings",
-      question: "What notifications will I get?",
-      answer: [
-        "Security and account updates: new-device sign-ins, failed attempts before you signed in, lockouts, password and two-factor changes, and administrator actions on your account. The number next to the menu link shows what's unread; choose Mark all as read to clear it.",
-        "In Settings you can switch off the optional kinds. Security-critical ones, such as a password change or a lockout, are always shown.",
-      ],
-      links: [
-        { href: "/notifications", label: "Notifications" },
-        { href: "/settings", label: "Settings" },
-      ],
-    },
+    // ---- Settings ----
     {
       id: "dark-mode",
-      category: "Notifications & settings",
+      category: "Settings",
       question: "How do I switch to dark mode?",
       answer: [
         "Use the Dark/Light button in the header, or choose System, Light or Dark under Settings, then Appearance. System follows your device. The choice is saved on the device you're using.",
       ],
     },
+
+    // ---- For staff ----
     {
-      id: "activity-window",
-      category: "Notifications & settings",
-      question: "What is the default activity window?",
+      id: "staff-sign-in",
+      category: "For staff",
+      question: "How do bank employees sign in?",
       answer: [
-        "It's how many days of recent activity an account page shows, and where a new statement's date range starts. Choose 7, 30, 60 or 90 days under Settings, then Preferences.",
+        "Use the Staff sign in page with your employee username and password. Your role decides what you can do: tellers look up accounts, open accounts and handle deposits and withdrawals; managers also suspend, reactivate and close accounts and manage customer logins; area managers also manage employees.",
+        "The portal hides what your role can't do, and the bank refuses it again if you try.",
       ],
-      links: [{ href: "/settings", label: "Settings" }],
+      links: [{ href: "/staff/login", label: "Staff sign in" }],
+    },
+    {
+      id: "staff-open-account",
+      category: "For staff",
+      question: "How do I open an account for a customer?",
+      answer: [
+        "Choose Open an account in the staff menu, enter the customer's details and pick the account type. The customer can only sign in online after a manager creates their login under Customer logins, using the customer id.",
+      ],
+    },
+    {
+      id: "staff-branch",
+      category: "For staff",
+      question: "Why does a deposit ask for a branch or ATM id?",
+      answer: [
+        "Every transaction records the employee and the branch or ATM that handled it. It defaults to your own branch. Area managers have no home branch, so they must name one.",
+      ],
     },
 
     // ---- Troubleshooting ----
@@ -294,14 +251,14 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Troubleshooting",
       question: "It says it can't reach the banking service",
       answer: [
-        "The service may be down, or you may have reached the daily request limit (1,000 requests per customer per day by default), which browsers report the same way. Wait a little and try again.",
+        "The service may be down, or you may have reached the daily request limit (1,000 requests per customer per day by default). Wait a little and try again.",
       ],
     },
     {
       id: "no-access",
       category: "Troubleshooting",
-      question: "It says I don't have access to a page",
-      answer: ["Administrator pages are only for administrators. If you need one, ask an administrator."],
+      question: "It says I don't have access to something",
+      answer: ["Customers can only reach their own accounts, and staff actions depend on the employee's role. If you need more access, ask a bank manager."],
     },
     {
       id: "contact-support",
@@ -310,8 +267,8 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       answer: [
         supportEmail
           ? `Email ${supportEmail} and include your username.`
-          : "Contact an administrator and include your username.",
-        "We will never ask for your password or authentication codes. Don't share them with anyone.",
+          : "Contact your branch and include your username.",
+        "We will never ask for your password or security answers. Don't share them with anyone.",
       ],
       ...(supportEmail ? { links: [{ href: `mailto:${supportEmail}`, label: `Email ${supportEmail}` }] } : {}),
     },

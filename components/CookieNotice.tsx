@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
-// A notice, not a consent prompt, on purpose: the portal sets only strictly necessary cookies (the session cookie and
-// the short-lived two-factor one) plus the theme you choose yourself. None of those need consent, and offering
+// A notice, not a consent prompt, on purpose: the portal sets only strictly necessary cookies (the two httpOnly sign-in cookies,
+// the token and the profile) plus the theme you choose yourself. None of those need consent, and offering
 // "Accept / Reject" for cookies that don't exist would be misleading, since rejecting would change nothing.
 // If optional cookies (analytics, marketing, ...) are ever added, replace this with real per-category choices and
 // don't set them until the visitor opts in. Bump NOTICE_VERSION whenever the wording or cookie use changes
 // materially, so everyone sees it again.
 const STORAGE_KEY = "cookie_notice_ack";
-const NOTICE_VERSION = "1";
+const NOTICE_VERSION = "2";
 const CHANGE_EVENT = "cookie-notice-changed";
 
 let acknowledgedThisSession = false; // fallback when storage is blocked, so the banner still goes away

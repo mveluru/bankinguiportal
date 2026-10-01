@@ -2,14 +2,17 @@
 
 | Component | Type | Used for |
 |---|---|---|
-| `AuthProvider.tsx` | client | React context holding the signed-in user (`useAuth`): `login`, `verifyTwoFactor`, `logout`, `refresh`, `extendSession`, `expireSession`. Also sets the customer ID used by `lib/api.ts`. |
-| `NavBar.tsx` | client | Header links, admin link, unread-notification badge (polled every minute), sign-out dialog, phone-width menu. |
-| `SessionTimeout.tsx` | client | Countdown dialog before expiry with "Stay signed in"; signs out at expiry using the absolute expiry time. |
-| `IdleLogout.tsx` | client | Signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab; lands on `/login?expired=1`. |
+| `AuthProvider.tsx` | client | React context holding the signed-in user (`useAuth`): `login(kind, …)`, `logout`, `expireSession`; plus `can(user, privilege)` for staff. |
+| `NavBar.tsx` | client | Customer or staff links (staff links depend on privileges; **UserMgnt** = employees), sign-out dialog, phone-width menu. |
+| `SessionTimeout.tsx` | client | Countdown dialog before the token expires; signs out at expiry using the absolute expiry time. No "stay signed in" (the backend has no refresh). |
+| `IdleLogout.tsx` | client | Signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab; lands on the portal's sign-in page with `?expired=1`. |
+| `auth/SignInForm.tsx`, `ForgotPassword.tsx`, `ChangePassword.tsx`, `SecurityQuestions.tsx`, `SettingsHome.tsx` | client | Credential screens shared by both portals (`kind` prop). |
+| `accounts/AccountDetail.tsx`, `CloseAccount.tsx`, `SuspendAccount.tsx`, `OpenAccount.tsx` | client | Account screens. `AccountDetail` and `CloseAccount` serve both portals; `SuspendAccount` and `OpenAccount` are staff-only. |
+| `CredentialAdmin.tsx` | client | Forms used by staff on a login: set status, set password, create login. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |
-| `ThemePicker.tsx` | client | System/Light/Dark selector on the settings page; same storage as the toggle. |
-| `TransactionForm.tsx` | client | Shared withdraw/deposit form; see [Transaction form layout](#transaction-form-layout). |
+| `ThemePicker.tsx` | client | System/Light/Dark selector on the settings hub; same storage as the toggle. |
+| `TransactionForm.tsx` | client | Shared withdraw/deposit form for both portals (`kind` and `portal` props); see [Transaction form layout](#transaction-form-layout). |
 | `HolderFields.tsx` | client | Account holder details, Address and Contact subsections shared by the deposit, withdraw and open-account forms; also exports `clearFormFields`. |
 | `LocationCard.tsx` | server | One branch/ATM card on the home page. |
 | `StateBlock.tsx` | server | `Loading` and `ErrorMessage` placeholders for fetch states. |
@@ -18,9 +21,8 @@
 
 ### Transaction form layout
 
-Three screens share one set of holder fields, `HolderFields.tsx`: `/accounts/[accountNumber]/deposit` and `/withdraw`
-(both `TransactionForm`, via its `kind` prop) and `/accounts/open` (`app/accounts/open/page.tsx`). A change to the
-subsections below therefore applies to all three. Top to bottom:
+Screens share one set of holder fields, `HolderFields.tsx`: deposit and withdraw (`TransactionForm`, via its `kind` prop, in both portals) and `/staff/accounts/open` (`components/accounts/OpenAccount.tsx`). A change to the
+subsections below therefore applies to all of them. Staff area managers (no home branch) also get a required Branch / ATM id field. Top to bottom:
 
 1. The screen's own leading fields: Amount\* (required) and Deposit type (deposit only), or Account type (open account).
 2. **Account holder details** subsection: a red `* indicates required` note, then First name\*, Middle and Last name\*

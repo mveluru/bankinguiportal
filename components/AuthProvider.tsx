@@ -1,31 +1,17 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { setCustomerId } from "@/lib/api";
 import { hardNavigate } from "@/lib/navigation";
-
-interface AuthUser {
-  username: string;
-  customerId: string;
-  displayName?: string;
-  role?: "admin" | "user";
-  /** Default window (days) for account activity and statements; from the user's settings. */
-  activityDays?: number;
-  sessionExpires: number; // epoch ms
-}
+import { loginOf } from "@/lib/session";
+import { readErrorMessage } from "@/lib/http-error";
+import type { PortalKind, SessionUser } from "@/lib/types";
 
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: SessionUser | null;
   loading: boolean;
-  /** Resolves { twoFactorRequired: true } when a code is still needed (no session yet). */
-  login: (username: string, password: string, remember?: boolean) => Promise<{ twoFactorRequired: boolean }>;
-  /** Second sign-in step: submits a code (or recovery code) for the pending 2FA sign-in. */
-  verifyTwoFactor: (code: string) => Promise<void>;
+  /** Signs a customer or an employee in against the backend; the token stays in an httpOnly cookie. */
+  login: (kind: PortalKind, username: string, password: string) => Promise<SessionUser>;
   logout: () => Promise<void>;
-  /** Re-reads the session user (e.g. after editing the profile). */
-  refresh: () => Promise<void>;
-  /** Pushes the session expiry out ("stay signed in"). Resolves false if the session is already gone. */
-  extendSession: () => Promise<boolean>;
   /** Ends the session because it timed out and shows the sign-in page with a notice. */
   expireSession: () => Promise<void>;
 }
@@ -38,81 +24,46 @@ export const useAuth = () => {
   return ctx;
 };
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+/** True when the signed-in employee's role grants the privilege (the backend enforces it again on every call). */
+export const can = (user: SessionUser | null, privilege: NonNullable<SessionUser["privileges"]>[number]) =>
+  !!user?.privileges?.includes(privilege);
 
-  const apply = useCallback((u: AuthUser | null) => {
-    setCustomerId(u?.customerId ?? null);
-    setUser(u);
-  }, []);
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
-      .then(apply)
-      .catch(() => apply(null))
+      .then(setUser)
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
-  }, [apply]);
-
-  const login = useCallback(
-    async (username: string, password: string, remember = false) => {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, remember }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.message ?? "Sign in failed.");
-      if (body.twoFactorRequired) return { twoFactorRequired: true };
-      apply(body);
-      return { twoFactorRequired: false };
-    },
-    [apply],
-  );
-
-  const verifyTwoFactor = useCallback(
-    async (code: string) => {
-      const res = await fetch("/api/auth/2fa/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.message ?? "Verification failed.");
-      apply(body);
-    },
-    [apply],
-  );
-
-  const refresh = useCallback(async () => {
-    const res = await fetch("/api/auth/me");
-    apply(res.ok ? await res.json() : null);
-  }, [apply]);
-
-  const extendSession = useCallback(async () => {
-    const res = await fetch("/api/auth/refresh", { method: "POST" });
-    if (!res.ok) return false;
-    const { sessionExpires } = await res.json();
-    setUser((u) => (u ? { ...u, sessionExpires } : u));
-    return true;
   }, []);
 
-  const expireSession = useCallback(async () => {
-    await fetch("/api/auth/logout", {
+  const login = useCallback(async (kind: PortalKind, username: string, password: string) => {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason: "expired" }),
-    }).catch(() => {});
-    apply(null);
-    hardNavigate("/login?expired=1");
-  }, [apply]);
+      body: JSON.stringify({ kind, username, password }),
+    });
+    if (!res.ok) throw new Error(await readErrorMessage(res));
+    const u: SessionUser = await res.json();
+    setUser(u);
+    return u;
+  }, []);
 
-  const logout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    apply(null);
-    hardNavigate("/login");
-  }, [apply]);
+  const end = useCallback(
+    async (suffix: string) => {
+      const kind = user?.kind ?? "customer";
+      await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      setUser(null);
+      hardNavigate(`${loginOf(kind)}${suffix}`);
+    },
+    [user],
+  );
 
-  return <AuthContext.Provider value={{ user, loading, login, verifyTwoFactor, logout, refresh, extendSession, expireSession }}>{children}</AuthContext.Provider>;
+  const logout = useCallback(() => end(""), [end]);
+  const expireSession = useCallback(() => end("?expired=1"), [end]);
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, expireSession }}>{children}</AuthContext.Provider>;
 }

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { deposit, getOverview, withdraw } from "@/lib/api";
-import { accountLabel, formatMoney, formatSuspendedUntil } from "@/lib/format";
-import type { AccountOverviewResponse, AccountResult } from "@/lib/types";
+import { useAuth } from "@/components/AuthProvider";
+import { accountsApi } from "@/lib/api";
+import { accountHref, accountLabel, formatMoney, formatSuspendedUntil } from "@/lib/format";
+import type { AccountOverviewResponse, AccountResult, PortalKind } from "@/lib/types";
 import HolderFields, { clearFormFields } from "@/components/HolderFields";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
 
@@ -15,8 +16,12 @@ const SUPPORTED = ["CHECKING", "SAVINGS"];
  * Shared withdraw/deposit form. The backend validates (but does not use) the holder's name and
  * address, so we collect them; names are prefilled from the account overview.
  */
-export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit" }) {
+export default function TransactionForm({ kind, portal = "customer" }: { kind: "withdraw" | "deposit"; portal?: PortalKind }) {
   const { accountNumber } = useParams<{ accountNumber: string }>();
+  const { user } = useAuth();
+  const { getOverview, deposit, withdraw } = accountsApi(portal);
+  // An area manager has no home branch, so the transaction must name the branch/ATM that handled it.
+  const needsLocation = portal === "staff" && user?.branch === null;
   const [account, setAccount] = useState<AccountOverviewResponse | null>(null);
   const [result, setResult] = useState<AccountResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +36,7 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
     return () => {
       cancelled = true;
     };
-  }, [accountNumber]);
+  }, [accountNumber, portal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,19 +54,20 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
       zip: get("zip"),
     };
     const amount = Number(get("amount"));
+    const locationId = get("locationId") ? Number(get("locationId")) : undefined;
     setSubmitting(true);
     setError(null);
     try {
       setResult(
         isWithdraw
-          ? await withdraw({ ...holder, accountNumber, accountType: account.accountType, withdrawAmount: amount })
+          ? await withdraw({ ...holder, accountNumber, accountType: account.accountType, withdrawAmount: amount }, locationId)
           : await deposit({
               ...holder,
               accountNumber,
               accountType: account.accountType,
               amount,
               depositType: get("depositType") as "cash" | "check",
-            }),
+            }, locationId),
       );
     } catch (err) {
       setError((err as Error).message);
@@ -78,7 +84,7 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
   if (!account) return error ? <ErrorMessage message={error} /> : <Loading />;
 
   const back = (
-    <Link href={`/accounts/${accountNumber}`} className="tap">
+    <Link href={accountHref(portal, accountNumber)} className="tap">
       ← Back to account
     </Link>
   );
@@ -129,6 +135,12 @@ export default function TransactionForm({ kind }: { kind: "withdraw" | "deposit"
               <option value="check">Check</option>
               <option value="cash">Cash (max $5,000)</option>
             </select>
+          </label>
+        )}
+        {needsLocation && (
+          <label>
+            <span>Branch / ATM id<span className="req">*</span></span>
+            <input name="locationId" type="number" min="1" required />
           </label>
         )}
         <HolderFields defaultFirstName={account.firstName} defaultLastName={account.lastName} />

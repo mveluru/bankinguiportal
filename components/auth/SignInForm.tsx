@@ -1,0 +1,71 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { ErrorMessage } from "@/components/StateBlock";
+import { hardNavigate } from "@/lib/navigation";
+import { homeOf } from "@/lib/session";
+import type { PortalKind } from "@/lib/types";
+
+function Form({ kind }: { kind: PortalKind }) {
+  const params = useSearchParams();
+  const { login } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const staff = kind === "staff";
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    setSubmitting(true);
+    setError(null);
+    try {
+      await login(kind, String(f.get("username")).trim(), String(f.get("password")));
+      // Only follow same-site relative redirects, and only into the portal the user signed in to.
+      const next = params.get("next");
+      const inPortal = next && (staff ? next.startsWith("/staff") : !next.startsWith("/staff"));
+      hardNavigate(inPortal && next.startsWith("/") && !next.startsWith("//") ? next : homeOf(kind));
+    } catch (err) {
+      setError((err as Error).message);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="stack" onSubmit={onSubmit}>
+      {params.get("expired") && !error && <p role="status" className="muted">Your session ended. Please sign in again.</p>}
+      <label>
+        Username
+        <input name="username" required autoComplete="username" autoFocus />
+      </label>
+      <label>
+        Password
+        <input name="password" type="password" required autoComplete="current-password" />
+      </label>
+      {error && <ErrorMessage message={error} />}
+      <button type="submit" disabled={submitting}>
+        {submitting ? "Signing in…" : "Sign in"}
+      </button>
+      <p className="link-list">
+        <Link href={staff ? "/staff/forgot-password" : "/forgot-password"} className="tap">Forgot password?</Link>
+        <Link href="/help" className="tap">Need help?</Link>
+        <Link href={staff ? "/login" : "/staff/login"} className="tap">
+          {staff ? "Customer sign in" : "Staff sign in"}
+        </Link>
+      </p>
+    </form>
+  );
+}
+
+export default function SignInForm({ kind }: { kind: PortalKind }) {
+  return (
+    <>
+      <h1>{kind === "staff" ? "Staff sign in" : "Sign in"}</h1>
+      <Suspense>
+        <Form kind={kind} />
+      </Suspense>
+    </>
+  );
+}

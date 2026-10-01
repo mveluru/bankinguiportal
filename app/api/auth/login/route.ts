@@ -1,68 +1,68 @@
 import { NextResponse } from "next/server";
-import { getProfile } from "@/lib/profiles";
-import {
-  PENDING_COOKIE,
-  SESSION_COOKIE,
-  createPendingToken,
-  createSessionToken,
-  pendingCookieOptions,
-  sessionCookieOptions,
-  verifySessionToken,
-} from "@/lib/session";
-import { isDisabled } from "@/lib/accounts";
-import { audit } from "@/lib/audit";
-import { checkLock, clearFailures, lockedResponse, registerFailure } from "@/lib/lockout";
-import { isTwoFactorEnabled } from "@/lib/twofactor";
-import { authenticate, roleOf } from "@/lib/users";
+import { callBackend, rateKey } from "@/lib/backend";
+import { readErrorMessage } from "@/lib/http-error";
+import { PROFILE_COOKIE, TOKEN_COOKIE, cookieOptions, decodeToken } from "@/lib/session";
+import type { PortalEmployee, PortalKind, PortalLocation, SessionUser } from "@/lib/types";
 
+interface CustomerLogin {
+  accessToken: string;
+  customer: { customerId: number; firstName: string; lastName: string };
+}
+interface StaffLogin {
+  accessToken: string;
+  employee: PortalEmployee;
+  branch: PortalLocation | null;
+}
+
+/**
+ * Signs a customer or an employee in against the backend (POST /bff/v1/{portal|staff}/login). The JWT goes into an
+ * httpOnly cookie and never into the response; the browser gets only the profile. Wrong password 401, locked 423,
+ * login not active 403: the backend's message is passed on as is.
+ */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const remember = body?.remember === true;
+  const kind: PortalKind = body?.kind === "staff" ? "staff" : "customer";
   const username = String(body?.username ?? "").trim();
+  const password = String(body?.password ?? "");
+  if (!username || !password) return NextResponse.json({ message: "Enter your username and password." }, { status: 400 });
 
-  // Checked before the password so a locked name gets the same answer whether or not the password is right.
-  const lock = checkLock(username);
-  if (lock.locked) {
-    audit(request, "login_blocked", username);
-    return lockedResponse(lock);
+  let res: Response;
+  try {
+    res = await callBackend(kind, "/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      key: rateKey(request, null),
+    });
+  } catch {
+    return NextResponse.json({ message: "Cannot reach the banking service. It may be down." }, { status: 502 });
   }
+  if (!res.ok) return NextResponse.json({ message: await readErrorMessage(res) }, { status: res.status });
 
-  const user = authenticate(username, String(body?.password ?? ""));
-  if (!user) {
-    const after = registerFailure(username);
-    audit(request, "login_failed", username);
-    if (after.locked) audit(request, "lockout", username);
-    return after.locked
-      ? lockedResponse(after)
-      : NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
-  }
-  clearFailures(username);
+  const login = await res.json();
+  const claims = decodeToken(login.accessToken);
+  if (!claims) return NextResponse.json({ message: "The banking service returned an unusable token." }, { status: 502 });
 
-  // Only revealed after the right password, so it can't be used to probe which accounts exist or are disabled.
-  if (isDisabled(user.username)) {
-    audit(request, "login_disabled", user.username);
-    return NextResponse.json({ message: "This account has been disabled. Contact an administrator." }, { status: 403 });
-  }
+  const user: Omit<SessionUser, "sessionExpires"> =
+    kind === "staff"
+      ? (({ employee, branch }: StaffLogin) => ({
+          kind,
+          username,
+          displayName: `${employee.firstName} ${employee.lastName}`,
+          employeeNumber: employee.employeeNumber,
+          role: employee.role,
+          privileges: employee.privileges,
+          branch,
+        }))(login)
+      : (({ customer }: CustomerLogin) => ({
+          kind,
+          username,
+          displayName: `${customer.firstName} ${customer.lastName}`,
+          customerId: customer.customerId,
+        }))(login);
 
-  // Password is right, but with 2FA on no session exists until the code step succeeds.
-  if (isTwoFactorEnabled(user.username)) {
-    audit(request, "two_factor_required", user.username);
-    const res = NextResponse.json({ twoFactorRequired: true });
-    res.cookies.set(PENDING_COOKIE, await createPendingToken(user.username, user.customerId, remember), pendingCookieOptions());
-    return res;
-  }
-
-  const token = await createSessionToken(user.username, user.customerId, remember);
-  const session = await verifySessionToken(token);
-  if (!session) return NextResponse.json({ message: "Sign-in failed. Please try again." }, { status: 403 });
-  audit(request, "login_success", user.username, remember ? "remember me" : undefined);
-  const res = NextResponse.json({
-    username: user.username,
-    customerId: user.customerId,
-    displayName: getProfile(user.username).displayName,
-    role: roleOf(user.username),
-    sessionExpires: session.exp * 1000,
-  });
-  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(remember));
-  return res;
+  const maxAge = Math.max(1, claims.exp - Math.floor(Date.now() / 1000));
+  const out = NextResponse.json({ ...user, sessionExpires: claims.exp * 1000 });
+  out.cookies.set(TOKEN_COOKIE, login.accessToken, cookieOptions(maxAge));
+  out.cookies.set(PROFILE_COOKIE, JSON.stringify(user), cookieOptions(maxAge));
+  return out;
 }

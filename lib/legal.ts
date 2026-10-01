@@ -1,5 +1,3 @@
-import { duration, num, plural } from "@/lib/duration";
-import { RESET_TTL_MINUTES } from "@/lib/resets";
 
 export type LegalBlock = { p: string } | { ul: string[] } | { table: { head: string[]; rows: string[][] } };
 export interface LegalSection {
@@ -18,7 +16,7 @@ export interface LegalDoc {
 }
 
 /** Date the wording below was last changed. Update it whenever you edit the text. */
-const LAST_UPDATED = "September 30, 2026";
+const LAST_UPDATED = "October 1, 2026";
 
 /** Operator details come from configuration so nothing is invented here. Server-side only. */
 function config() {
@@ -26,7 +24,7 @@ function config() {
   return {
     entity: process.env.LEGAL_ENTITY_NAME?.trim() || "Brite Banking",
     email,
-    contact: email ? `email ${email}` : "contact an administrator",
+    contact: email ? `email ${email}` : "contact your branch",
     governingLaw: process.env.LEGAL_GOVERNING_LAW?.trim() || undefined,
     templateNotice: process.env.LEGAL_REVIEWED?.trim().toLowerCase() !== "true",
   };
@@ -38,9 +36,6 @@ function config() {
  */
 export function privacyDoc(): LegalDoc {
   const c = config();
-  const lockMinutes = num(process.env.LOCKOUT_MINUTES, 15);
-  const session = duration(num(process.env.SESSION_MAX_AGE_SECONDS, 8 * 3600));
-  const remember = duration(num(process.env.REMEMBER_ME_MAX_AGE_SECONDS, 30 * 86400));
 
   return {
     title: "Privacy Policy",
@@ -56,12 +51,10 @@ export function privacyDoc(): LegalDoc {
             table: {
               head: ["Information", "What it includes", "Why", "How long"],
               rows: [
-                ["Sign-in details", "Your username, and your password as a salted hash once you've set one in the portal", "To sign you in", "Until your account is removed; a new password replaces the old hash"],
-                ["Profile", "Display name and email address (both optional)", "To personalize the portal and to reach you", "Until you change or clear them"],
-                ["Security settings", "Your two-factor secret (encrypted), recovery codes (hashed), failed-attempt counters, and whether an administrator has disabled your account", "To protect your account", `Two-factor data until you turn it off; failed-attempt counters expire after ${plural(lockMinutes, "minute")}`],
-                ["Sign-in and security log", "The time, type of event, username, IP address and browser or device details for sign-ins, sign-outs, failed attempts, password and two-factor changes, and administrator actions", "To show you your own history, detect misuse and investigate incidents", "Until the log rotates. It keeps a fixed amount of recent history, not a set number of days"],
-                ["Preferences and notifications", "Your default activity window, notification choices and the time you last marked notifications read", "To remember your settings", "Until you change them"],
-                ["Password reset requests", "A one-time random token, stored only as a hash", "To let you reset a forgotten password", `${plural(RESET_TTL_MINUTES, "minute")}, or until used`],
+                ["Sign-in details", "Your username and password. You type them into the portal, which passes them straight to the banking service; the portal doesn't store or log them. The bank keeps only a hash of the password", "To sign you in", "Held by the bank until your login is removed; a new password replaces the old hash"],
+                ["Sign-in token", "A time-limited token the bank issues when you sign in, plus your name (and, for staff, employee number, role and branch)", "To keep you signed in and to show your name", "Until it expires (the bank sets the lifetime), you sign out, or you change your password"],
+                ["Security questions", "The three questions you chose and your answers, held by the bank (answers are not shown back to anyone)", "To let you reset a forgotten password", "Until you replace them"],
+                ["Login status", "Whether your login is active, inactive, locked or suspended, why, and failed-attempt counters", "To protect your account", "Held by the bank"],
                 ["Banking data", "Accounts, balances, transactions, statements, and the name and address you enter with a deposit or withdrawal", "Provided by the bank's banking service. The portal passes your requests through and doesn't keep its own copy", "As set by the bank"],
               ],
             },
@@ -76,8 +69,8 @@ export function privacyDoc(): LegalDoc {
             table: {
               head: ["Name", "Purpose", "How long"],
               rows: [
-                ["bank_session (cookie)", "Keeps you signed in. It's signed, can't be read by scripts on the page, and is essential for the portal to work", `Until you close the browser or ${session}, whichever is first. With “Remember me”, up to ${remember}`],
-                ["bank_2fa_pending (cookie)", "Remembers that your password was accepted while you enter your two-factor code", "5 minutes"],
+                ["bank_token (cookie)", "Holds your sign-in token. It can't be read by scripts on the page and is essential for the portal to work", "Until your token expires or you sign out"],
+                ["bank_profile (cookie)", "Holds your name and, for staff, role and branch, so pages can show them", "Same as the sign-in token"],
                 ["theme (local storage)", "Remembers your Light, Dark or System theme on this device", "Until you clear your browser's site data"],
                 ["cookie_notice_ack (local storage)", "Remembers that you've seen the cookie notice, so it isn't shown again", "Until you clear your browser's site data"],
               ],
@@ -92,8 +85,7 @@ export function privacyDoc(): LegalDoc {
         blocks: [
           { ul: [
             "To run the portal: signing you in, showing your accounts and passing your transactions to the bank.",
-            "To keep accounts safe: limiting requests, locking an account after repeated failed sign-ins, ending sessions and, when needed, disabling accounts.",
-            "To keep you informed: showing your own sign-in history and security notifications.",
+            "To keep accounts safe: the bank limits requests, locks a login after repeated failed sign-ins, ends sessions and, when needed, suspends logins.",
             "To help you: answering support requests and investigating problems.",
           ] },
           { p: "The portal doesn't sell your information or share it with advertisers." },
@@ -104,8 +96,8 @@ export function privacyDoc(): LegalDoc {
         title: "Who can see it",
         blocks: [
           { ul: [
-            "You can see your own profile, settings, notifications and sign-in history.",
-            "Administrators can see a user list showing each person's username, name, email, customer ID, whether two-factor is on, whether the account is locked or disabled, last sign-in and recent failed attempts. They can't see passwords or two-factor secrets. Every administrator action is recorded and appears in the affected person's own sign-in history and notifications.",
+            "You can see your own accounts and transactions. Customers can't see anyone else's.",
+            "Bank employees can see account information their role allows, and the bank records which employee handled each transaction. Managers can set a customer's login status or password and area managers can do the same for employees; they can't see passwords or security answers.",
             "The bank and its banking service handle your accounts and transactions, and send any confirmations by email or text.",
             "The portal doesn't send your information to analytics or advertising services.",
           ] },
@@ -116,28 +108,22 @@ export function privacyDoc(): LegalDoc {
         title: "How we protect it",
         blocks: [
           { ul: [
-            "Passwords you set are stored only as salted hashes.",
-            "Two-factor secrets are encrypted, and recovery codes are stored hashed and work once.",
-            "Sign-in sessions use signed, script-inaccessible cookies (marked Secure in production) and can be ended by an administrator immediately.",
-            "Repeated failed sign-ins and two-factor codes lock the account for a short time, and requests are rate limited.",
-            "Security-relevant events are logged and shown to you.",
+            "Passwords are checked and stored (as hashes) by the bank, never by the portal.",
+            "Your sign-in token is kept in a script-inaccessible cookie (marked Secure in production) and the portal adds it to your requests on the server, so scripts in your browser never see it.",
+            "The bank checks your login on every request, so suspending or locking it, or changing the password, stops an existing session at once.",
+            "Repeated failed sign-ins and security answers lock the login for a short time, and requests are rate limited.",
           ] },
-          { p: "No system is perfectly secure. Please choose a strong password, turn on two-factor authentication, and never share your password or codes." },
+          { p: "No system is perfectly secure. Please choose a password that is hard to guess, set your security questions, and never share your password or answers." },
         ],
       },
       {
         id: "choices",
         title: "Your choices",
-        links: [
-          { href: "/settings", label: "Settings" },
-          { href: "/settings/activity", label: "Sign-in activity" },
-        ],
+        links: [{ href: "/settings", label: "Settings" }],
         blocks: [
           { ul: [
-            "Edit or clear your display name and email in Settings.",
-            "Change your preferences and which optional notifications you receive in Settings.",
-            "Review your sign-in history, and turn on two-factor authentication.",
-            "Sign out at any time, or choose whether to use “Remember me” on a device.",
+            "Change your password and your security questions in Settings.",
+            "Sign out at any time.",
           ] },
           { p: `To ask to see, correct or delete information we hold about you, ${c.contact}. Some security records may need to be kept for a period so we can protect accounts and meet our obligations.` },
         ],
@@ -159,7 +145,6 @@ export function privacyDoc(): LegalDoc {
 /** Terms of Use: a conventional template. Company name, contact and governing law come from configuration. */
 export function termsDoc(): LegalDoc {
   const c = config();
-  const attempts = num(process.env.LOCKOUT_MAX_ATTEMPTS, 5);
 
   const sections: LegalSection[] = [
     {
@@ -174,9 +159,9 @@ export function termsDoc(): LegalDoc {
       blocks: [
         { ul: [
           "Give accurate information and keep it up to date.",
-          "Keep your password, authentication codes and recovery codes confidential, and don't share them with anyone.",
+          "Keep your password and security answers confidential, and don't share them with anyone.",
           "You're responsible for activity under your account until you tell us it wasn't you, so tell us promptly if you notice anything unusual.",
-          "We recommend turning on two-factor authentication.",
+          "Set your security questions so you can reset a forgotten password yourself.",
         ] },
       ],
     },
@@ -201,7 +186,8 @@ export function termsDoc(): LegalDoc {
         { p: "Accounts, deposits, withdrawals, statements and branch information are provided through the bank's banking service, and are subject to your account agreement with the bank, including its limits, minimum balances and fees. Transactions can be declined if they don't meet those rules." },
         { ul: [
           "You're responsible for the accuracy of the details you enter.",
-          "Closing an account is permanent and can't be undone from the portal.",
+          "Closing an account is permanent and can't be undone.",
+          "Accounts are opened by bank staff at the office; the portal doesn't open accounts for customers.",
           "Confirmations for some actions, such as withdrawals and statements, are sent by email or text.",
         ] },
       ],
@@ -209,7 +195,7 @@ export function termsDoc(): LegalDoc {
     {
       id: "protecting",
       title: "Steps we may take to protect accounts",
-      blocks: [{ p: `To protect you and the portal we may lock an account after ${plural(attempts, "failed sign-in attempt")} in a row, end sessions after a set time, limit the number of requests, and suspend or disable an account when we think it's at risk or being misused.` }],
+      blocks: [{ p: "To protect you and the portal the bank may lock a login after repeated failed sign-in attempts, end sessions after a set time, limit the number of requests, and suspend an account or a login when it's thought to be at risk or being misused." }],
     },
     {
       id: "availability",
@@ -219,7 +205,7 @@ export function termsDoc(): LegalDoc {
     {
       id: "communications",
       title: "Communications",
-      blocks: [{ p: "We may send you messages about your account and its security, including notifications in the portal and confirmations by email or text. Optional notifications can be switched off in Settings; security-critical ones can't." }],
+      blocks: [{ p: "We may send you messages about your account and its security, including confirmations by email or text." }],
     },
     {
       id: "privacy",

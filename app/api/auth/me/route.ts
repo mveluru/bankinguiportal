@@ -1,19 +1,9 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getProfile } from "@/lib/profiles";
-import { getPreferences } from "@/lib/preferences";
-import { roleOf } from "@/lib/users";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
+import { getSession } from "@/lib/backend";
 
+/** The signed-in user for the UI (profile plus the token's expiry). The token itself is never returned. */
 export async function GET() {
-  const session = await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value);
+  const session = await getSession();
   if (!session) return NextResponse.json({ message: "Not signed in." }, { status: 401 });
-  return NextResponse.json({
-    username: session.username,
-    customerId: session.customerId,
-    displayName: getProfile(session.username).displayName,
-    role: roleOf(session.username),
-    activityDays: getPreferences(session.username).activityDays,
-    sessionExpires: session.exp * 1000, // epoch ms
-  });
+  return NextResponse.json(session.user, { headers: { "Cache-Control": "no-store" } });
 }

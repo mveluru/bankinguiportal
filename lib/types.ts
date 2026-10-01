@@ -136,3 +136,74 @@ export interface BankStatement {
   endDate: string;
   transactions: AccountTransaction[];
 }
+
+// --- Auth, staff portal and credentials (org.brite.banking.bff.dto / domain / request) ---
+export type PortalKind = "customer" | "staff";
+export type EmployeeRole = "TELLER" | "MANAGER" | "AREA_MANAGER";
+export type EmployeeStatus = "ACTIVE" | "ON_LEAVE" | "TERMINATED";
+export type LoginStatus = "ACTIVE" | "INACTIVE" | "LOCKED" | "SUSPENDED";
+export type EmployeePrivilege =
+  | "VIEW_ACCOUNT"
+  | "DEPOSIT"
+  | "WITHDRAW"
+  | "OPEN_ACCOUNT"
+  | "SUSPEND_ACCOUNT"
+  | "UPDATE_SUSPENSION"
+  | "REACTIVATE_ACCOUNT"
+  | "CLOSE_ACCOUNT"
+  | "VIEW_BRANCH_REPORTS"
+  | "MANAGE_EMPLOYEES"
+  | "MANAGE_CUSTOMER_LOGINS";
+
+export interface PortalEmployee {
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  role: EmployeeRole;
+  jobTitle: string | null;
+  status: EmployeeStatus;
+  hireDate: string | null;
+  bankLocationId: number | null;
+  region: string | null;
+  privileges: EmployeePrivilege[];
+}
+
+/** Spring Data page, as returned by GET /staff/employees. */
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // zero-based page index
+  size: number;
+}
+
+export interface LoginStatusView {
+  username: string;
+  status: LoginStatus;
+  statusReason: string | null;
+  statusChangedAt: string | null;
+  lockedUntil: string | null;
+}
+
+export interface SecurityQuestionView {
+  question: string; // catalog code, e.g. FIRST_CAR
+  text: string;
+}
+
+export interface SecurityAnswer {
+  question: string;
+  answer: string;
+}
+
+/** The signed-in user as the browser sees it. The JWT itself stays in an httpOnly cookie. */
+export interface SessionUser {
+  kind: PortalKind;
+  username: string;
+  displayName: string;
+  customerId?: number; // customers
+  employeeNumber?: string; // staff
+  role?: EmployeeRole;
+  privileges?: EmployeePrivilege[];
+  branch?: PortalLocation | null; // staff: null for an area manager
+  sessionExpires: number; // epoch ms, from the token's exp claim
+}

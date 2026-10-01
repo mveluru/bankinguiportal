@@ -1,107 +1,88 @@
 # Calling the banking backend
 
-How the portal talks to the Spring Boot banking service (`bankingservices`, context path `/brite`, port
-8081). All calls go through one client, `lib/api.ts`, and are made **from the browser**. Route handlers in `app/api/`
-never call the banking service; they only serve the demo identity layer (see [api-routes.md](api-routes.md)).
+How the portal talks to the Spring Boot banking service (`bankingservices`, context path `/brite`, port 8081). The backend
+has two BFF controller groups, and each has a matching proxy here:
 
-> **Every call now uses the BFF (Path A).** Path B (the `/api/banking` rewrite, its `proxy.ts` gate and
-> `BANKING_BACKEND_URL`) has no callers left and is kept only until the config is removed.
-
-## Two paths to the same backend
-
-```
-                       ┌──────────────────────────── Path A: BFF (direct, CORS) ───────────────────────────┐
-Browser ─ lib/api.ts ──┤  fetch NEXT_PUBLIC_API_BASE_URL + NEXT_PUBLIC_BFF_PORTAL_PATH (/bff/v1/portal)/...  ──────────────► Spring :8081 │
- (client components)   │                                                                                    │
-                       └──────────────────────── Path B: same-origin proxy (rewrite) ──────────────────────┘
-                          fetch /api/banking/v1/api/...  ─► proxy.ts (session check) ─► next.config.ts rewrite
-                                                               ─► BANKING_BACKEND_URL + /v1/api/... ─► Spring :8081
-```
-
-| | Path A: BFF | Path B: proxy |
-|---|---|---|
-| Base (constant in `lib/api.ts`) | `BASE` = `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8081/brite`) | `PROXY` = `/api/banking` |
-| Endpoints | `/bff/v1/portal/*`, built for this UI, one call per screen | `/v1/api/accounts/*`, the general banking API |
-| Why | The backend enables CORS for `/bff/**` only (origin allow-list `banking.portal.allowed-origins`, includes `http://localhost:3000`) | No CORS on these endpoints, so the browser calls its own origin and Next forwards the request server-side |
-| Session gate | None. The browser talks straight to Spring | `proxy.ts` returns 401 JSON if the session cookie is missing or invalid |
-| Env var | `NEXT_PUBLIC_API_BASE_URL` (public: inlined into the browser bundle); the path prefix `/bff/v1/portal` comes from `NEXT_PUBLIC_BFF_PORTAL_PATH` (same default) | `BANKING_BACKEND_URL` (server-side only, read in `next.config.ts`) |
-
-The rewrite is defined in `next.config.ts`: `/api/banking/:path*` → `${BANKING_BACKEND_URL}/:path*`
-(default `http://localhost:8081/brite`).
-
-## Endpoint catalogue
-
-Every function in `lib/api.ts`, what it calls, and which screen uses it.
-
-| Function | Method and URL | Path | Used by |
+| Backend controllers | Base path | Token | Proxy here |
 |---|---|---|---|
-| `getHome(state?)` | `GET /bff/v1/portal/home?state=` | A | `/` (accounts plus branches/ATMs) |
-| `getOverview(accountNumber, days?)` | `GET /bff/v1/portal/accounts/{n}/overview?days=` | A | account overview, deposit, withdraw and close screens |
-| `openAccount(body)` | `POST /bff/v1/portal/accounts/open` | A | `/accounts/open` |
-| `suspendAccount(n, body)` | `POST /bff/v1/portal/accounts/{n}/suspend` | A | suspend screen. Returns the refreshed overview |
-| `updateSuspension(n, body)` | `PATCH /bff/v1/portal/accounts/{n}/suspension` | A | suspend screen (change end / notes) |
-| `reactivateAccount(n)` | `POST /bff/v1/portal/accounts/{n}/reactivate` | A | suspend screen |
-| `deposit(body)` | `POST /bff/v1/portal/accounts/deposit` | A | deposit screen (`TransactionForm`) |
-| `withdraw(body)` | `POST /bff/v1/portal/accounts/withdraw` | A | withdraw screen (`TransactionForm`) |
-| `getStatement(n, begin, end)` | `POST /bff/v1/portal/accounts/{n}/statement?beginDate=&endDate=` | A | statement screen (POST because it has a side effect). **Side effect:** the backend also emails/SMSes the statement |
-| `closeAccount(n)` | `POST /bff/v1/portal/accounts/{n}/close` | A | close screen. **Irreversible:** no reopen, and no zero-balance check |
+| `CustomerPortalAuthController` (sign-in, password, security questions, reset) and `CustomerPortalController` (home, account overview, deposit, withdraw, close, statement) | `/bff/v1/portal` | customer JWT | `/api/portal/[...path]` |
+| `StaffPortalAuthController` (sign-in, password, security questions, reset, employee login status/password) and `StaffPortalController` (accounts, employees) | `/bff/v1/staff` | employee JWT | `/api/staff/[...path]` |
+| `CustomerPortalAuthController`'s `/staff/customers/{id}/login`, `/login-status`, `/password` | `/bff/v1/staff` | employee JWT | `/api/staff/[...path]` |
 
-Account numbers are always passed through `encodeURIComponent`.
+```
+Browser ─ lib/api.ts ─► /api/portal|staff/...  ─► lib/bff-proxy.ts ─► BANKING_BACKEND_URL + /bff/v1/{portal|staff}/...
+                         (same origin, cookies)    adds Authorization: Bearer <bank_token>, X-Customer-Id
+```
+
+The browser never calls the backend, so there is no CORS to configure and the JWT never reaches client code. The sign-in
+call is the only one that does not go through the proxy: `POST /api/auth/login` (`app/api/auth/login/route.ts`) calls the
+backend's login, stores the token in the httpOnly `bank_token` cookie and returns just the profile.
 
 ## What every request carries
 
-The shared `request<T>()` helper in `lib/api.ts` adds to every call:
+`lib/backend.ts` adds to every call:
 
-- `Content-Type: application/json`
-- `X-Customer-Id`: the signed-in user's customer ID. `AuthProvider` sets it with `setCustomerId` after sign-in. Before that
-  it falls back to `NEXT_PUBLIC_CUSTOMER_ID` (default `demo-customer`). **It is a rate-limit key only, not
-  authentication.**
-- `cache: "no-store"`, so balances and activity are never served stale.
+- `Authorization: Bearer <JWT>` (from the cookie; absent before sign-in and on the open calls).
+- `X-Customer-Id`: the gateway's rate-limit key. It is the customer id, the employee number, or the caller's IP before
+  sign-in. **A rate-limit key only, not authentication.**
+- `Content-Type: application/json`, `cache: "no-store"`.
 
-No session cookie, token or password is ever forwarded to the banking service.
+## Auth rules the backend enforces (and the UI reflects)
+
+- Customer JWT on `/portal/*` (except sign-in, the question catalog and the two reset calls); employee JWT on `/staff/*`
+  (same exceptions). The wrong type is **403**; a missing, invalid, expired or revoked token is **401**. 30 minute tokens, no refresh.
+- The token only proves who you are. The login status (`ACTIVE` only may transact) and the employee's role privileges are re-read on
+  every call, so a suspension or demotion applies at once.
+- Customers reach only their own accounts (someone else's is 403). Suspend, update-suspension, reactivate and open-account exist only on `/staff`.
+- Passwords are exactly 8 digits. A password change or reset revokes every earlier token.
+- Sign-in: 401 wrong credentials, 423 locked, 403 login not active, 400 missing field.
+
+## Endpoint catalogue
+
+| `lib/api.ts` | Method and URL (under `/api/portal` or `/api/staff`) | Used by |
+|---|---|---|
+| `getHome(state?)` | `GET /home?state=` (portal) | customer home |
+| `accountsApi(kind).getOverview(n, days?)` | `GET /accounts/{n}/overview?days=` | account detail, forms |
+| `accountsApi(kind).deposit/withdraw(body, locationId?)` | `POST /accounts/deposit`, `/withdraw` (staff: `?locationId=`) | `TransactionForm` |
+| `accountsApi(kind).closeAccount(n)` | `POST /accounts/{n}/close`. **Irreversible** | `CloseAccount` |
+| `getStatement(n, begin, end)` | `POST /accounts/{n}/statement?beginDate=&endDate=` (portal). **Side effect:** also emails/SMSes the statement | statement page |
+| `openAccount(body)` | `POST /accounts/open` (staff, OPEN_ACCOUNT) | `OpenAccount` |
+| `suspendAccount`, `updateSuspension`, `reactivateAccount` | `POST /accounts/{n}/suspend`, `PATCH .../suspension`, `POST .../reactivate` (staff) | `SuspendAccount` |
+| `listEmployees`, `getEmployee` | `GET /employees?role=&page=&size=`, `GET /employees/{n}` (staff, MANAGE_EMPLOYEES) | employees pages |
+| `setEmployeeLoginStatus`, `setEmployeePassword` | `PUT /employees/{n}/login-status`, `PUT /employees/{n}/password` | employee page |
+| `createCustomerLogin`, `setCustomerLoginStatus`, `setCustomerPassword` | `POST /customers/{id}/login`, `PUT .../login-status`, `PUT .../password` (staff, MANAGE_CUSTOMER_LOGINS) | customer logins page |
+| `credentialsApi(kind).changePassword` | `PUT /password` | change password |
+| `credentialsApi(kind).questionCatalog / setSecurityQuestions` | `GET /security-questions/catalog`, `PUT /security-questions` | security questions |
+| `credentialsApi(kind).resetQuestions / resetPassword` | `POST /password-reset/questions`, `POST /password-reset` (open) | forgot password |
+
+Account numbers are always passed through `encodeURIComponent`.
 
 ## Responses, DTOs and errors
 
-- Request and response shapes live in `lib/types.ts`, which mirrors the BFF DTOs
-  (`org.bee.banking.bff.dto`). Change it only when the backend DTO changes.
-- Withdraw, deposit and close return the refreshed `AccountOverviewResponse`; for withdraw/deposit `lib/api.ts`
-  reduces it to `AccountResult` (`{ accountNumber, accountType, balance }`). Statement returns a `BankStatement`.
-- The holder form fields Middle and Country are **not** part of any request body: the backend has no fields for them.
-  Phone is sent as `phoneNumber` by `openAccount` only; the overview returns it masked (`maskedPhoneNumber`, last four
-  digits).
-- Account status is `ACTIVE | SUSPENDED | CLOSED`. A suspended account (`suspended`, `suspendedUntil`, null =
-  indefinite) rejects withdraw/deposit with a 400; the UI hides those actions and explains why. Home also returns
-  `totalSuspendedAccounts` and lists suspended accounts.
-- Errors are turned into a message by `errorMessage()` and thrown as `ApiError`:
-  - Spring bean-validation failures arrive as JSON with `errors[].defaultMessage`; those are joined with `; `.
-  - Business-rule failures arrive as plain text (or a JSON `message` / `error`) and are shown as is.
-  - A network failure, or a rate-limit response (429 has no CORS headers, so the browser reports it as a network
-    error), becomes: "Cannot reach the banking service. It may be down, or you may be rate limited."
-- Screens show `ApiError.message` with `ErrorMessage` from `StateBlock`.
+- Shapes live in `lib/types.ts`, mirroring the backend DTOs (`org.brite.banking.bff.dto`, `domain`, `request`). Change it only when the backend changes.
+- Withdraw, deposit and close return the refreshed `AccountOverviewResponse`; `lib/api.ts` reduces withdraw/deposit to `AccountResult`.
+- The holder form fields Middle and Country are **not** part of any request body. Phone is sent as `phoneNumber` by `openAccount` only.
+- A suspended account rejects withdraw/deposit with a 400; the UI hides those actions and explains why.
+- Errors become a message via `readErrorMessage` (`lib/http-error.ts`) and are thrown as `ApiError` (with `status`): bean-validation JSON
+  (`errors[].defaultMessage`, joined with `; `), or plain text from business rules, shown as is. A proxy failure (backend down) is a 502 with a message.
 
 ## Security notes
 
-- **The banking backend does not authenticate requests.** The portal's sign-in is a front-end-only demo, and the BFF
-  endpoints (Path A) are reachable directly by anyone who can reach the service. Real auth has to be added to the
-  Spring service (see its "Auth (not built yet)" note).
-- `proxy.ts` protects only what goes through Next: pages and `/api/banking/*` (Path B). It cannot protect Path A,
-  because that traffic never touches the Next server.
-- `NEXT_PUBLIC_*` values are visible in the browser. Never put secrets in them.
+- The JWT is in an httpOnly cookie (`Secure` in production) and is never in a response body or client code. The profile cookie
+  is display data only.
+- `proxy.ts` and the UI's hidden buttons are convenience. The backend enforces authentication, ownership and privileges.
+- `lib/bff-proxy.ts` refuses `..`, `login` and cross-site `Origin`, and clears the cookies on a 401 or a password change.
+- Never log passwords, security answers or tokens.
 
 ## Adding a new backend call
 
 1. Add the request and response types to `lib/types.ts`.
-2. Add a function to `lib/api.ts` using `request<T>()`.
-   - Endpoint under `/bff/**` (CORS-enabled): use the default base.
-   - Any other endpoint: pass `PROXY` as the third argument, and use the path *without* the context path
-     (for example `/v1/api/...`); the rewrite adds `/brite`.
-3. Call it from a client component. If it emails, texts or deletes something, only call it on an explicit user
-   action.
-4. Update the endpoint table above and the screen table in the repo-root `README.md`.
+2. Add a function to `lib/api.ts` using `request<T>()` against `ROOT.customer` or `ROOT.staff`. No new route handler is needed: the catch-all proxies forward any path under `/bff/v1/portal` or `/bff/v1/staff`.
+3. Call it from a client component. If it emails, texts or deletes something, only on an explicit user action.
+4. Update the table above and the screen tables in the repo-root `README.md`.
 
 ## Running locally
 
 1. Start the backend on port 8081 (context path `/brite`).
-2. `cp .env.local.brite .env.local` and keep the defaults: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_CUSTOMER_ID`,
-   `BANKING_BACKEND_URL`.
-3. `npm run dev`. Restart after changing any of these, because they are read at startup.
+2. `cp .env.local.brite .env.local` (defaults are fine): `BANKING_BACKEND_URL`, `BFF_PORTAL_PATH`, `BFF_STAFF_PATH`.
+3. `npm run dev`. Restart after changing these, because they are read at startup. Sign in with the backend's demo data (see the README).

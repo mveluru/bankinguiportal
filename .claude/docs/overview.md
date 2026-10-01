@@ -10,48 +10,48 @@ does, and how a request moves through them. For screens and environment variable
 ## 1. Big picture
 
 ```
-Browser ──► proxy.ts (session gate) ──► app/ pages (React 19, App Router)
-                                            │  client calls
-                    ┌───────────────────────┼─────────────────────────────┐
-                    ▼                       ▼                             ▼
-      app/api/auth|admin/*          lib/api.ts ──► Spring BFF      /api/banking/* rewrite
-      (Next route handlers:         (/bff/v1/portal/*, CORS)       (next.config.ts) ──► Spring
-       demo auth, 2FA, prefs, …)                                    withdraw/deposit/statement/close
-                    │
-                    ▼
-      lib/*.ts server modules ──► .data/*.json and .data/audit.log (gitignored, mode 600)
+Browser ──► proxy.ts (portal gate: customer ⇄ / , staff ⇄ /staff) ──► app/ pages (React 19, App Router)
+                                                                          │ fetch same-origin only
+              ┌───────────────────────────┬───────────────────────────────┤
+              ▼                           ▼                               ▼
+   /api/auth/{login,logout,me}   /api/portal/[...path]           /api/staff/[...path]
+   (sign in, cookies, profile)   (customer BFF proxy)            (staff BFF proxy)
+              └───────────────┬───────────┴───────────────────────────────┘
+                              ▼  lib/backend.ts: Authorization: Bearer <JWT from httpOnly cookie>, X-Customer-Id
+                  Spring banking service  /bff/v1/portal/*   /bff/v1/staff/*
 ```
 
-Two backends, deliberately separate (details of the banking calls: [backend-integration.md](backend-integration.md)):
+One backend owns everything: money, **identity** (customer and employee logins, JWTs, lockout, security questions,
+login status) and authorisation (roles and privileges). The portal is a client of it with two parts:
 
-- **The Spring banking service** owns money: accounts, balances, transactions, locations. The browser reaches it
-  through `lib/api.ts`, either directly (BFF endpoints, CORS-enabled) or through the same-origin `/api/banking/*`
-  rewrite (endpoints without CORS).
-- **The Next.js server** owns the *demo* identity layer: sign-in, sessions, 2FA, preferences, notifications, audit,
-  admin. This is front-end-only demo auth, not real security. State lives in flat files under `.data/`.
+- **Browser code** only calls this app's own `/api/*` route handlers through `lib/api.ts`.
+- **Route handlers** hold the backend's JWT in an httpOnly cookie, add it as a Bearer header and forward to the BFF. They
+  contain no business rules. Details: [backend-integration.md](backend-integration.md).
+
+Nothing is stored on this server (no `.data/`, no audit log). Removed with this design: the demo `DEMO_USERS` login, TOTP
+two-factor, profiles, preferences, notifications, the audit log and the local `/admin/users`.
 
 ## 2. Folder map
 
 | Path | Purpose |
 |---|---|
-| `app/` | Routes (App Router). One folder per URL segment; `page.tsx` is the screen, `route.ts` is an HTTP endpoint. |
-| `app/api/` | Server-only route handlers: `auth/*` (login, logout, me, refresh, password, forgot/reset, profile, preferences, notifications, activity, `2fa/*`) and `admin/users`. |
-| `components/` | Shared React components used by more than one page (or by the root layout). |
-| `lib/` | Non-visual code: types, API client, formatting, and the server-side stores and security helpers. |
-| `proxy.ts` | Runs before every matched request; redirects signed-out visitors to `/login` and returns 401 for API calls. |
-| `next.config.ts` | Rewrites `/api/banking/*` to `BANKING_BACKEND_URL`. |
+| `app/` | Routes (App Router). Customer screens at `/`, `/accounts/*`, `/settings/*`; staff screens under `/staff/*`. |
+| `app/api/` | Route handlers: `auth/{login,logout,me}` and the two catch-all BFF proxies `portal/[...path]`, `staff/[...path]`. |
+| `components/` | Shared React components. `components/auth/` (sign-in, forgot/change password, security questions, settings hub) and `components/accounts/` (account detail, close, suspend, open) take a `kind` (`customer` or `staff`) so both portals share them. |
+| `lib/` | Types, the browser API client, formatting, and the small server helpers that talk to the backend. |
+| `proxy.ts` | Runs before every page request: routes customers and employees to their own portal, signed-out visitors to the right sign-in page. Not applied to `/api/*`. |
+| `next.config.ts` | Empty config: no rewrites are needed any more. |
 | `public/` | Static assets served as-is. |
-| `.data/` | Runtime state created on demand (users, 2FA, lockouts, resets, prefs, audit log). Gitignored; never commit. |
-| `.env.local.brite` | Template for `.env.local`. Every tunable (session length, lockout, demo users, …) is an env var. |
-| `.claude/` | Claude Code project files, not part of the app: `CLAUDE.md` / `AGENTS.md` (instructions), `docs/` (these reference docs, split by layer), `skills/` (rules per layer, one `SKILL.md` each). |
-| `eslint.config.mjs`, `tsconfig.json` | Lint and TypeScript config. The `@/` import alias maps to the repo root. |
+| `.env.local.brite` | Template for `.env.local`. Every tunable is an env var. |
+| `.claude/` | Claude Code project files, not part of the app: `CLAUDE.md` / `AGENTS.md`, `docs/` (these docs), `skills/` (rules per layer). |
+| `e2e/` | Playwright specs against the real backend. |
 
 ## 7. Conventions
 
 - Import with the `@/` alias (`@/lib/session`, `@/components/NavBar`).
-- Keep server-only modules out of client components; put shared types and constants in a client-safe file
-  (as `audit-events.ts` and `preferences-shared.ts` do).
-- Never write passwords, codes, tokens or recovery codes to the audit log.
+- Keep server-only modules (`backend.ts`, `bff-proxy.ts`) out of client components; put shared types and constants in a
+  client-safe file (as `passwords.ts` and `http-error.ts` do).
+- Never put the JWT in a response body, a log line or client code. Never write passwords, security answers or tokens to a log.
 - Tunables go in env vars and are documented in `.env.local.brite`; user-facing text that quotes them (`faq.ts`,
   `legal.ts`) reads the same variables.
-- Bump `NOTICE_VERSION` (`CookieNotice.tsx`) and `LAST_UPDATED` (`lib/legal.ts`) when wording or cookie use changes.
+- Bump `NOTICE_VERSION` (`CookieNotice.tsx`, now "2") and `LAST_UPDATED` (`lib/legal.ts`) when wording or cookie use changes.

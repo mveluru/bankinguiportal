@@ -1,15 +1,24 @@
 # Key flows
 
-**Sign-in.** `login` page → `POST /api/auth/login` → lockout check → password check → if 2FA is on, set a 5-minute
-signed *pending* cookie and go to `/login/verify`; otherwise issue the session cookie. Every step is audited.
+**Sign-in.** `/login` (or `/staff/login`) → `POST /api/auth/login` → backend login → JWT into the httpOnly `bank_token`
+cookie, profile into `bank_profile` → full page load to `/` (or `/staff`). Wrong password 401, locked 423, login not
+active 403: the backend's message is shown as is.
 
-**Every request.** `proxy.ts` verifies the session cookie. Public pages and auth endpoints pass; everything else
-redirects to `/login` (pages) or returns 401 (`/api/*`). `verifySessionToken` also rejects sessions for disabled or
-revoked accounts, so an admin action takes effect on the user's next request. Admin pages (`/admin/*`)
-are redirected to `/` for non-admins here, and `/api/admin/*` returns 403 from `requireAdmin` (audited).
+**Every page request.** `proxy.ts` reads the token cookie's type and expiry (no signature check). Customers are kept on
+customer pages and employees on `/staff/*`; everyone else goes to the matching sign-in page with `?next=`.
 
-**Money operations.** Page → `lib/api.ts` → Spring BFF (or `/api/banking/*` rewrite). The Spring service is not
-authenticated; the customer ID header is only a rate-limit key.
+**Every backend call.** Component → `lib/api.ts` → `/api/portal/*` or `/api/staff/*` → `lib/bff-proxy.ts` → backend with
+`Authorization: Bearer`. The backend re-checks the token and the login status on each call, so suspending a login or
+changing a password takes effect at once; the next call returns 401/403 and the page shows the message.
 
-**Notifications.** No per-notification storage: `lib/notifications.ts` filters `audit.log` into plain-language items
-for the user, and the badge counts entries newer than the stored "read up to" timestamp.
+**Session end.** The token lives 30 minutes (backend setting, no refresh). `SessionTimeout` warns before the token's `exp` and signs
+out at it; `IdleLogout` signs out after inactivity. Both end in `hardNavigate` to the sign-in page with `?expired=1`.
+
+**Changing a password.** `PUT .../password` revokes every earlier token, so the proxy clears the cookies on success and the page
+tells the user to sign in again.
+
+**Forgot password.** `POST .../password-reset/questions` returns the user's three questions (a decoy set for unknown users), then
+`POST .../password-reset` with the answers and a new 8-digit password. It never lifts a lock or suspension.
+
+**Staff actions.** The UI hides what the role's privileges (from the sign-in response) lack, and the backend refuses it again (403).
+Area managers have no branch, so deposits and withdrawals ask for a branch/ATM id (`?locationId=`).

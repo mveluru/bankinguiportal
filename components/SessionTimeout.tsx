@@ -11,15 +11,14 @@ const clock = (ms: number) => {
 };
 
 /**
- * Warns shortly before the session expires, with a countdown and a "stay signed in" option, and
- * signs the user out when the time runs out. Compares against the absolute expiry time (not a
- * counter), so it stays correct after the tab was asleep or throttled in the background.
+ * Warns shortly before the backend token expires, with a countdown, and signs the user out when the time runs out.
+ * The backend has no refresh call, so the only way to carry on past the expiry is to sign in again. Compares against the
+ * absolute expiry time (not a counter), so it stays correct after the tab was asleep or throttled in the background.
  */
 export default function SessionTimeout() {
-  const { user, extendSession, expireSession, logout } = useAuth();
+  const { user, expireSession, logout } = useAuth();
   const dialog = useRef<HTMLDialogElement>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [extending, setExtending] = useState(false);
   const expiring = useRef(false);
 
   const expires = user?.sessionExpires;
@@ -48,16 +47,6 @@ export default function SessionTimeout() {
     }
   }, [expired, expireSession]);
 
-  async function stay() {
-    setExtending(true);
-    try {
-      if (!(await extendSession())) await expireSession();
-      else setNow(Date.now());
-    } finally {
-      setExtending(false);
-    }
-  }
-
   return (
     <dialog
       ref={dialog}
@@ -65,16 +54,14 @@ export default function SessionTimeout() {
       aria-labelledby="timeout-title"
       onCancel={(e) => e.preventDefault() /* Escape shouldn't silently dismiss the warning */}
     >
-      <h2 id="timeout-title" style={{ marginTop: 0 }}>Still there?</h2>
+      <h2 id="timeout-title" style={{ marginTop: 0 }}>Your session is about to end</h2>
       <p>
-        Your session expires in <strong role="timer">{clock(remaining)}</strong>. You will be signed out automatically.
+        You will be signed out in <strong role="timer">{clock(remaining)}</strong>. Finish what you are doing, then sign in
+        again to continue.
       </p>
       <div className="row" style={{ justifyContent: "flex-end" }}>
-        <button type="button" className="secondary" onClick={() => logout()} disabled={extending}>
+        <button type="button" onClick={() => logout()}>
           Sign out now
-        </button>
-        <button type="button" onClick={stay} disabled={extending}>
-          {extending ? "Extending…" : "Stay signed in"}
         </button>
       </div>
     </dialog>
