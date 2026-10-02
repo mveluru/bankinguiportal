@@ -12,7 +12,7 @@ Docs: `../../docs/testing.md` (demo users, the spec inventory, the daily limit).
   teller `lucas.meyer`.
 - **Mind the daily request limit.** The backend allows 1,000 requests a day per customer and per employee, kept in MySQL. A full run uses a few
   hundred for Customer A, so don't run the whole suite over and over: run the specs you changed, and use Customer B for repeat runs. When a customer
-  is over the limit every screen for them fails to load, which makes specs fail for a reason that is not a bug. Check
+  is over the limit (this includes the area manager `priya.raman`: use `E2E_STAFF_USER=daniel.okafor`) every screen for them fails to load, which makes specs fail for a reason that is not a bug. Check
   `GET /bff/v1/portal/rate-limit` (or the Customer logins screen) before blaming the code.
 - **Side effects are mocked, never real:** Generate statement (it emails/SMSes) is answered with `page.route`; Close account only clicks No;
   rate-limit PUTs are mocked. If a spec must change data it restores it in a `finally`, through the API (a `request.post`), not by clicking

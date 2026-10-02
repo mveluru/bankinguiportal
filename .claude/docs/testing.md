@@ -12,7 +12,7 @@ All from the backend's `db/data` seeds (local use only). Defaults live in `e2e/h
 |---|---|---|---|
 | Customer A | `customer0001` / `20260001` | owns checking account `CH-0000088291` (the account most specs use) | `E2E_USER`, `E2E_PASSWORD`, `E2E_ACCOUNT` |
 | Customer B | `customer0002` / `20260002` | Bob Jones, savings `SV-0000044102`, customer id 2 | `E2E_USER_B`, `E2E_PASSWORD_B`, `E2E_ACCOUNT_B`, `E2E_CUSTOMER_ID_B` |
-| Area manager | `priya.raman` / `20260001` | all privileges, no branch | `E2E_STAFF_USER`, `E2E_STAFF_PASSWORD` |
+| Area manager | `priya.raman` / `20260001` | all privileges, no branch. Alternatives with their own limit: `daniel.okafor` / `20260002`, `elena.vasquez` / `20260003` | `E2E_STAFF_USER`, `E2E_STAFF_PASSWORD` |
 | Teller | `lucas.meyer` / `20260010` | `EMP-000010`, has a branch, no suspend/reactivate/admin privileges | `E2E_TELLER_USER`, `E2E_TELLER_PASSWORD` |
 
 `E2E_PORT` changes the dev-server port. A customer whose accounts are not ACTIVE cannot sign in (the backend refuses it), so Customer A's
@@ -27,7 +27,7 @@ specs need `CH-0000088291` to be active.
 | `staff.spec.ts` | Staff sign-in, role button and permissions, lookup, employees list, teller restrictions, reactivate page, customer and employee rate-limit panels (PUT mocked), sign-out |
 | `login-count.spec.ts` | "Logins today: N" beside Sign out (mocked and live, once per page load, 320px layout), Sign out styled like Dark, blocked-sign-in message |
 | `blocked-login.spec.ts` | SUSPENDED, CLOSED, INACTIVE and DORMANT sign-ins show the backend's message and start no session; one real-backend check |
-| `withdraw-address.spec.ts` | The withdraw (and deposit) form is pre-filled with the holder's address; staff must tick the required "I verified the customer's address" box to withdraw (withdraw only; Clear unticks it); the overview and POST are mocked, and one live check skips itself until the backend returns `holderAddress` |
+| `withdraw-address.spec.ts` | The withdraw and deposit forms are pre-filled with the holder's address; staff must tick the required "I verified the customer's address" box to withdraw or deposit (never shown to customers; Clear unticks it); the overview and POST are mocked, and one live check skips itself until the backend returns `holderAddress` |
 | `close-dialog.spec.ts` | Close account asks Yes/No; only No is clicked, so nothing is closed |
 | `idle.spec.ts` | Idle sign-out after 2 minutes (fake clock) and activity keeping the session alive |
 | `suspended.spec.ts` | **Changes data:** staff suspend `CH-0000088291`, the customer is refused sign-in, staff reactivate, the customer signs in again; the cleanup reactivates through the API even if a step fails; skips itself unless the account is active |
@@ -41,6 +41,10 @@ a backend restart; it starts again on the next calendar day. A full run is a few
 one day use it up, and then every screen for that customer fails to load. What to do: raise that customer's limit on the Customer logins
 screen, wait for the next day, or run the specs with Customer B (`customer-account.spec.ts`). Sign-in and password-reset calls are counted
 separately by IP, in the backend's memory.
+
+Employees have the same limit: the area manager the specs sign in as (`priya.raman`) can use hers up too, and then the limit pop-up covers her pages and
+the staff specs time out on a click. Run them as another area manager (`E2E_STAFF_USER=daniel.okafor E2E_STAFF_PASSWORD=20260002`), or have
+another area manager raise her limit on her employee screen.
 
 ## Side effects to avoid
 

@@ -25,8 +25,8 @@ response body, a log or client code, and never touch the banking database direct
 - Irreversible or side-effecting calls only on an explicit user action: close account, and Generate statement (it emails/SMSes a copy).
 - Never log passwords, security answers or tokens. Passwords are exactly 8 digits.
 - Customers can only ever see their own account(s); staff actions depend on the role's privileges.
-- **Staff withdraw rule:** the withdraw form is pre-filled with the customer's address (`holderAddress` from the overview) and, for staff only, has a
-  required checkbox "I verified the customer's address" that must be ticked before it can be submitted. Keep it required; it is withdraw-only.
+- **Staff withdraw and deposit rule:** both forms are pre-filled with the customer's address (`holderAddress` from the overview) and, for staff only, have
+  a required checkbox "I verified the customer's address" that must be ticked before the form can be submitted. Keep it required on both; never show it to customers.
 - Text that quotes configuration (`lib/faq.ts`, `lib/legal.ts`) must read the same env var as the behaviour. Bump `LAST_UPDATED` in `lib/legal.ts`
   and `NOTICE_VERSION` in `components/CookieNotice.tsx` when their wording or cookie use changes.
 
@@ -35,7 +35,8 @@ response body, a log or client code, and never touch the banking database direct
 - After a change: `npx tsc --noEmit` and `npx eslint .`; run the e2e specs you affected (`npx playwright test e2e/<spec>`).
 - The e2e specs use the real backend and its daily request limit (1,000 a day per customer/employee, in MySQL): don't run the whole suite over
   and over for `customer0001`; use `customer0002` for repeats. A customer whose accounts aren't ACTIVE can't sign in. See `.claude/docs/testing.md`
-  and the `e2e` skill. Never press the real Generate statement or Close account in a spec.
+  and the `e2e` skill. The area manager the staff specs use has the same daily limit (override with `E2E_STAFF_USER`). Never press the real
+  Generate statement or Close account in a spec.
 - One `next dev` per project folder (a second one refuses to start); the running one hot-reloads.
 
 ## Before committing to `main`

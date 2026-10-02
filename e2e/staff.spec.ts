@@ -4,7 +4,7 @@ import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
 // Read-only: browses the staff portal as an area manager; never changes an account or a login.
 test("staff sign in, see their role, look up an account and list employees", async ({ page }) => {
   await signInStaff(page);
-  await expect(page.getByRole("status").filter({ hasText: /^Welcome Priya Raman EMP-000001$/ })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: /^Welcome .+ EMP-\d{6}$/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Brite Dashboard" })).toBeVisible();
   // The role sits above the Dashboard button; clicking it shows what the role allows. None of that is on the dashboard itself.
   await expect(page.locator(".side-role")).toContainText("Area Manager");

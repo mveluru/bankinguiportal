@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { STAFF } from "./helpers";
 
-// The withdraw (and deposit) form is pre-filled with the account holder's address from the account overview. Staff must also tick
-// "I verified the customer's address" before they can withdraw: a required checkbox, withdraw only. The overview and the POST are mocked
+// The withdraw and deposit forms are pre-filled with the account holder's address from the account overview. Staff must also tick
+// "I verified the customer's address" before they can withdraw or deposit: a required checkbox (never shown to customers). The overview and the POST are mocked
 // (a real withdrawal would move money); the field shape is the backend's real `holderAddress`.
 const CUSTOMER = { user: process.env.E2E_USER_B ?? "customer0002", password: process.env.E2E_PASSWORD_B ?? "20260002" };
 const TELLER = { user: process.env.E2E_TELLER_USER ?? "lucas.meyer", password: process.env.E2E_TELLER_PASSWORD ?? "20260010" };
@@ -99,10 +99,31 @@ test("Clear also unticks the verification box", async ({ page }) => {
   await expect(page.locator('input[name="street"]')).toHaveValue("");
 });
 
-test("the verification box is a withdraw rule only: a staff deposit has the address filled in but no box", async ({ page }) => {
-  await mockAccount(page, "staff");
+test("staff must also tick the box to make a deposit, and the address is pre-filled there too", async ({ page }) => {
+  const posts = await mockAccount(page, "staff");
   await signIn(page, "/staff/login", TELLER);
   await page.goto(`/staff/accounts/${ACCOUNT}/deposit`);
+  await expectAddressFilled(page);
+
+  const box = page.getByLabel(/I verified the customer's address/);
+  await expect(box).toBeVisible();
+  expect(await box.evaluate((e) => (e as HTMLInputElement).required)).toBe(true);
+
+  await fillRest(page);
+  await page.getByRole("button", { name: "Deposit", exact: true }).click();
+  expect(posts).toHaveLength(0); // refused by the browser: the box is required
+  expect(await box.evaluate((e) => (e as HTMLInputElement).validity.valueMissing)).toBe(true);
+
+  await box.check();
+  await page.getByRole("button", { name: "Deposit", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Deposit complete" })).toBeVisible();
+  expect(posts).toHaveLength(1);
+});
+
+test("a customer's deposit form is pre-filled with their address and has no verification box", async ({ page }) => {
+  await mockAccount(page, "portal");
+  await signIn(page, "/login", CUSTOMER);
+  await page.goto(`/accounts/${ACCOUNT}/deposit`);
   await expectAddressFilled(page);
   await expect(page.getByLabel(/I verified the customer/)).toHaveCount(0);
 });

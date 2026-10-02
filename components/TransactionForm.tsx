@@ -149,8 +149,8 @@ export default function TransactionForm({ kind, portal = "customer" }: { kind: "
           </label>
         )}
         <HolderFields defaultFirstName={account.firstName} defaultLastName={account.lastName} defaultAddress={account.holderAddress} />
-        {/* Staff rule: an employee must confirm the address with the customer before a withdrawal can be submitted. */}
-        {portal === "staff" && isWithdraw && (
+        {/* Staff rule: an employee must confirm the address with the customer before a withdrawal or a deposit can be submitted. */}
+        {portal === "staff" && (
           <label className="choice">
             <input type="checkbox" name="addressVerified" required />
             <span>I verified the customer&apos;s address<span className="req">*</span></span>
