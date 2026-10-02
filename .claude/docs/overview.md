@@ -37,14 +37,14 @@ two-factor, profiles, preferences, notifications, the audit log and the local `/
 |---|---|
 | `app/` | Routes (App Router). Customer screens at `/`, `/accounts/*`, `/settings/*`; staff screens under `/staff/*`. |
 | `app/api/` | Route handlers: `auth/{login,logout,me}` and the two catch-all BFF proxies `portal/[...path]`, `staff/[...path]`. |
-| `components/` | Shared React components. `components/auth/` (sign-in, forgot/change password, security questions, settings hub) and `components/accounts/` (account detail, close, suspend, open) take a `kind` (`customer` or `staff`) so both portals share them. |
+| `components/` | Shared React components. The shell: `NavBar` (top bar: brand, `LoginCount`, `SignOutButton`, theme switch) and `SideNav` (the left panel of feature buttons). `components/auth/` (sign-in, forgot/change password, security questions, settings hub) and `components/accounts/` (account detail, close, suspend, reactivate, open, lookup box, statements) take a `kind` (`customer` or `staff`) where both portals share them. Staff admin: `CredentialAdmin`, `RateLimitPanel`. Pop-ups: `RateLimitNotice`, `SessionTimeout`. |
 | `lib/` | Types, the browser API client, formatting, and the small server helpers that talk to the backend. |
 | `proxy.ts` | Runs before every page request: routes customers and employees to their own portal, signed-out visitors to the right sign-in page. Not applied to `/api/*`. |
 | `next.config.ts` | Empty config: no rewrites are needed any more. |
 | `public/` | Static assets served as-is. |
 | `.env.local.brite` | Template for `.env.local`. Every tunable is an env var. |
 | `.claude/` | Claude Code project files, not part of the app: `CLAUDE.md` / `AGENTS.md`, `docs/` (these docs), `skills/` (rules per layer). |
-| `e2e/` | Playwright specs against the real backend. |
+| `e2e/` | Playwright specs against the real backend ([testing.md](testing.md)), including the phone-size audit `mobile.spec.ts`. |
 
 ## 7. Conventions
 
@@ -52,6 +52,7 @@ two-factor, profiles, preferences, notifications, the audit log and the local `/
 - Keep server-only modules (`backend.ts`, `bff-proxy.ts`) out of client components; put shared types and constants in a
   client-safe file (as `passwords.ts` and `http-error.ts` do).
 - Never put the JWT in a response body, a log line or client code. Never write passwords, security answers or tokens to a log.
+- Every screen must be responsive (320px phone up to desktop) and every call to the backend counts against the user's daily request limit: no polling.
 - Tunables go in env vars and are documented in `.env.local.brite`; user-facing text that quotes them (`faq.ts`,
   `legal.ts`) reads the same variables.
 - Bump `NOTICE_VERSION` (`CookieNotice.tsx`, now "2") and `LAST_UPDATED` (`lib/legal.ts`) when wording or cookie use changes.

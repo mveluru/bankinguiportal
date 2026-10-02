@@ -8,13 +8,18 @@ issues the JWTs and enforces every rule; the portal holds no users of its own.
 The browser only calls this app's own `/api/*` route handlers. They keep the JWT in an httpOnly cookie and forward to the
 BFF with `Authorization: Bearer`, so scripts in the page never see the token.
 
+**Backend it needs** ([bankingservices](https://github.com/mveluru/bankingservices), context path `/brite`, port 8081): the BFF endpoints in
+`.claude/docs/backend-integration.md`, including the caller's own usage (`GET /bff/v1/portal/rate-limit`, `GET /bff/v1/staff/rate-limit`), the
+manager/area-manager limit calls (`.../customers/{id}/rate-limit`, `.../employees/{n}/rate-limit`) and the rule that a customer with no ACTIVE
+account cannot sign in. Against an older backend the extra screens degrade quietly (the login count simply isn't shown).
+
 ### Customer portal
 
 | Screen | Route | Backend call (via `/api/portal/*`) |
 |---|---|---|
 | Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
 | Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
-| Dashboard (the customer home; the same "Go to account number" box and details panel, then your accounts and branches/ATMs with a state filter) | `/` | `GET /portal/home?state=` |
+| Dashboard (the customer home). "Go to account number" is filled in with the customer's own account id and read-only (a short list if they have several); View shows the account in a big square box on the right, scrollable both ways. Below: their accounts, and branches/ATMs with a state filter | `/` | `GET /portal/home?state=`, and for View `GET /portal/accounts/{n}/overview` |
 | Statements: the customer's own account is selected (a short list of just theirs if they have several), then a date range; print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` (the account list comes from the sign-in, no extra call) |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
 | Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
@@ -87,18 +92,20 @@ The backend (port 8081) is a separate process; stopping the portal does not stop
 
 ### End-to-end tests
 
-`npm run test:e2e` runs against the real backend in Chrome (needs the backend running and Google Chrome installed). It
-reuses a dev server already on port 3000, or starts one. It signs in with the backend's demo data
-(`customer0001` / `20260001`, who owns `CH-0000088291`, and the area manager `priya.raman` / `20260001`), checks the home,
-account and staff screens, the idle logout and the close-account Yes/No dialog. Only `e2e/suspended.spec.ts` changes
-data (staff suspend, then reactivate, an account); it skips itself unless the account is active. Override the defaults
-with `E2E_USER`, `E2E_PASSWORD`, `E2E_STAFF_USER`, `E2E_STAFF_PASSWORD`, `E2E_ACCOUNT` and `E2E_PORT`.
+`npm run test:e2e` runs Playwright against the real backend in Chrome (needs the backend running and Google Chrome installed); it reuses a dev
+server already on port 3000, or starts one. It signs in with the backend's demo data (customers `customer0001` and `customer0002`, area manager
+`priya.raman`, teller `lucas.meyer`) and covers the screens, the welcome banner, idle logout, blocked sign-ins, the login count, the rate-limit
+panels, statements, and every screen on iPhone and Samsung phone sizes (`e2e/mobile.spec.ts`). Only `e2e/suspended.spec.ts` changes data (staff
+suspend and then reactivate `CH-0000088291`; its cleanup reactivates through the API) and it skips itself unless that account is active.
+Details, the spec list and the env overrides (`E2E_USER`, `E2E_STAFF_USER`, `E2E_ACCOUNT_B`, `E2E_PORT`, ...) are in
+[`.claude/docs/testing.md`](.claude/docs/testing.md); the rules for writing specs are the [e2e skill](.claude/skills/e2e/SKILL.md).
 
-**Mind the daily request limit.** The backend allows each customer (and each employee) 1,000 requests a day, counted in memory per
-customer id; it resets at midnight or when the backend restarts. A full run is a few hundred requests for `customer0001`, so several runs in
-a day use it up, and then every screen for that customer fails to load ("Daily request limit exceeded for customer 1"). If that
-happens, restart the backend (its counters start again), or use another customer: `E2E_USER_B` / `E2E_PASSWORD_B` / `E2E_ACCOUNT_B`
-drive `e2e/customer-account.spec.ts` (customer0002 by default).
+**Mind the daily request limit.** The backend allows each customer and each employee 1,000 requests a day, counted in MySQL (so it survives a
+backend restart) and starting again the next calendar day. A full run is a few hundred requests for `customer0001`, so several runs in a day use
+it up, and then every screen for that customer fails to load ("Daily request limit exceeded for customer 1"). Raise that customer's limit on the
+**Customer logins** screen, wait for the next day, or use customer0002 (`E2E_USER_B`, `E2E_PASSWORD_B`, `E2E_ACCOUNT_B` drive
+`e2e/customer-account.spec.ts`). A customer whose accounts are not ACTIVE cannot sign in at all, so `customer0001`'s specs need
+`CH-0000088291` to be active.
 
 ## Deploy
 
@@ -149,58 +156,70 @@ Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, 
 
 ## Docs
 
-Architecture and per-layer reference live in [`.claude/docs/`](.claude/docs/index.md) (start with `overview.md`). Rules
-for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one `SKILL.md` per layer.
+Architecture and per-layer reference live in [`.claude/docs/`](.claude/docs/index.md) (start with `overview.md`; `testing.md` covers the e2e
+specs). Rules for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one `SKILL.md` per layer plus `portal-conventions`
+(project-wide) and `e2e`. `CLAUDE.md` summarises the project rules and the commit checklist. When a change alters a screen, route, env var, rule
+or spec, update the README, the matching doc and skill, and `CLAUDE.md` in the same commit.
 
 ## Notes
-- **Sign-in is the backend's.** `POST /api/auth/login` calls `/bff/v1/portal/login` or `/bff/v1/staff/login` and stores the
-  returned JWT in the httpOnly `bank_token` cookie (lifetime = the token's own `exp`; the backend issues 30 minutes, no
-  refresh). A second httpOnly cookie, `bank_profile`, holds the name, role, privileges and branch for display. Neither is
-  trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting
-  an employee or changing a password applies at once. Passwords are exactly 8 digits.
-- **Layout.** Every feature is a button in the left-hand panel (light-blue background, `components/SideNav.tsx`), shown only when signed
-  in; Sign out is a button in the top bar, just left of the Dark/Light switch; the top bar holds the brand (with the employee's name and id for staff) and the theme switch. Staff see only the buttons their
-  role's privileges allow (tellers get no "Customer logins" or "UserMgnt"). On a phone the panel becomes a strip of buttons above the page.
-  The sign-in screens put the form in a card at the top right, a little below the header, with a short welcome on the left.
-- **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by
-  `e2e/mobile.spec.ts`, which fails if anything sticks out past the screen edge. On a phone the left panel is a compact wrap of buttons
-  above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
-- **Logins today.** Next to Sign out, customers and employees see "Logins today: N", the banking service's count of their successful sign-ins
-  today (it adds one in `customer_rate_limits` / `employee_rate_limits` at every sign-in, so the portal writes nothing). It comes from the
-  caller's own `GET /portal/rate-limit` / `GET /staff/rate-limit` (token-based, no privilege), fetched once per page load because each
-  call counts as a request against the daily limit; if it can't be loaded nothing is shown. On a phone it sits on its own row under the brand.
-- **Customer since.** Customers see their account id, their name and "Customer since <year>" at the top of the left panel, where staff see their role. A customer's "Go to account number" box is filled in with their own account id and cannot be edited (a list of just their accounts if they have several); the backend refuses any other account (403) regardless. It is the year of the earliest account in the sign-in response, kept in the (display-only) profile cookie.
-- **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
-  staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
-  load and removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it (the customer home heading reads "Welcome" only while the banner is up, then "Dashboard") (`lib/greeting.ts`, `components/Greeting.tsx`). The
-  backend has no "customer since" field, so the year is the earliest account date in the sign-in response (the newest open accounts only).
-- **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to
-  the matching sign-in page. It reads only the token's type and expiry; the backend is the real access control (a customer
-  token on a staff call is 403, and vice versa). The UI hides actions the role lacks, but never relies on that.
-- **Session end.** `components/SessionTimeout.tsx` counts down to the token's expiry (`NEXT_PUBLIC_SESSION_WARNING_SECONDS`,
-  default 120) and signs out at expiry; there is no "stay signed in" because the backend has no refresh. Independently,
-  `components/IdleLogout.tsx` signs out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any
-  tab and lands on the sign-in page with `?expired=1`. Changing a password revokes every earlier token, so the portal
-  signs the user out and asks them to sign in again.
+
+**Sign-in and sessions**
+- **Sign-in is the backend's.** `POST /api/auth/login` calls `/bff/v1/portal/login` or `/bff/v1/staff/login` and stores the returned JWT in the
+  httpOnly `bank_token` cookie (lifetime = the token's own `exp`; the backend issues 30 minutes, no refresh). A second httpOnly cookie,
+  `bank_profile`, holds the display data: name, role, privileges, branch, and for customers their account ids and customer-since year. Neither is
+  trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting an employee or changing
+  a password applies at once. Passwords are exactly 8 digits.
 - **Sign-in is refused for a customer with no ACTIVE account.** Suspended, closed, inactive and dormant accounts cannot sign in: the backend
   answers 403 with "Sign-in is not available: your account status is <STATUS>. Please contact the customer support service." and the sign-in
-  screen shows exactly that text (no session starts). INACTIVE and DORMANT are set by hand on the backend for now; the portal's account
-  screens say such an account is unavailable for transactions. Staff suspending a customer's only account therefore locks them out until it is
-  reactivated. `e2e/blocked-login.spec.ts` covers all four statuses.
-- **Sign out** is styled like the Dark/Light button next to it (`button.icon`) with blue text, and sits just right of "Logins today: N".
-- **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
-  reset never undoes a lock or suspension an employee set.
-- **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (shown once when the limit is first exceeded, not on every request or load, and again only after a request has succeeded in between; no screen shows it as a red message; a screen that could not load shows a short grey "not available right now" note instead of staying blank). Help explains it at `/help#request-limit`.
-- `X-Customer-Id` is still required by the backend gateway and is sent by the route handlers (customer id, employee number, or the
-  caller's IP before sign-in). For a signed-in customer the daily limit is now counted against the customer in the token, not the header,
-  and kept in the backend's `customer_rate_limits` table, so it survives a backend restart and each customer can have their own limit
-  (managers set it on the Customer logins screen). Employees are counted the same way, per employee in `employee_rate_limits`, with the
-  limit set by an area manager on the employee's screen. Only unauthenticated calls (sign-in, password reset) are counted per header value, in memory. A 429 from the backend reaches the browser as a normal 429 message.
-- The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only
-  strictly necessary cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server
-  components in `lib/legal.ts`, with a visible "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED`
-  whenever the wording changes. Help & FAQ (`/help`) is public and renders per request.
-- Withdraw and deposit validate the holder's name and address in the backend but do not use them, so the forms collect
-  them (names are prefilled).
-- The demo data of the backend's `db/data` seeds (customer logins `customer0001`.. with password `2026` + sequence, employee
-  logins named after the email, e.g. `priya.raman`) is for local use only.
+  screen shows exactly that text (no session starts). INACTIVE and DORMANT are set by hand on the backend for now, and the account screens say
+  such an account is unavailable for transactions. Staff suspending a customer's only account therefore locks them out until it is reactivated.
+- **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to the matching sign-in
+  page. It reads only the token's type and expiry; the backend is the real access control (a customer token on a staff call is 403, and vice
+  versa). The UI hides actions the role lacks, but never relies on that.
+- **Session end.** `components/SessionTimeout.tsx` counts down to the token's expiry (`NEXT_PUBLIC_SESSION_WARNING_SECONDS`, default 120) and
+  signs out at expiry; there is no "stay signed in" because the backend has no refresh. `components/IdleLogout.tsx` signs out after
+  `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab and lands on the sign-in page with `?expired=1`. Changing a
+  password revokes every earlier token, so the portal signs the user out and asks them to sign in again.
+- **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A reset never undoes a
+  lock or suspension an employee set.
+
+**Screens and layout**
+- **Layout.** Every feature is a button in the left-hand panel (light blue, `components/SideNav.tsx`), shown only when signed in; staff see only
+  the buttons their role's privileges allow (tellers get no "Customer logins" or "UserMgnt"). The top bar holds the brand (staff: name and
+  employee id, with their branch beneath if they have one), "Logins today: N", Sign out and the Dark/Light switch. Sign out is styled like the
+  Dark button, with blue text. The panel's top shows the staff role (a button listing its permissions) or the customer's account id, name and
+  "Customer since <year>". The sign-in screens put the form in a card at the right with a short welcome on the left.
+- **Phones.** Every screen is checked on iPhone and Samsung sizes (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px Galaxy S9+) by
+  `e2e/mobile.spec.ts`, which fails on anything sticking out past the screen edge. On a phone the left panel is a compact wrap of buttons above the
+  page, the login count sits on its own row under the brand, and tables scroll sideways inside their own box. Print styles hide the chrome when
+  printing a statement.
+- **Welcome banner.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
+  staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page load and
+  removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it; the customer heading reads "Welcome" only while the
+  banner is up, then "Dashboard" (`lib/greeting.ts`, `components/Greeting.tsx`). The backend has no "customer since" field, so the year is the
+  earliest account date in the sign-in response (the newest open accounts only).
+- **Customers see only their own account.** The "Go to account number" box is pre-filled with it and read-only; the backend refuses any other
+  account with a 403 regardless.
+- The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only strictly necessary
+  cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server components in `lib/legal.ts`, with a visible
+  "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED` whenever the wording changes. Help & FAQ (`/help`) is public and renders
+  per request. Withdraw and deposit validate the holder's name and address in the backend but do not use them, so the forms collect them.
+
+**The daily request limit and the login count**
+- **Daily request limit.** The backend counts each signed-in customer's requests against their token (not the `X-Customer-Id` header) in
+  `customer_rate_limits`, and each employee's in `employee_rate_limits`, 1,000 a day by default, per calendar day; a manager sets a customer's
+  own limit on the Customer logins screen and an area manager an employee's on the employee screen. Only sign-in and password-reset calls are
+  counted per header value, in the backend's memory. `X-Customer-Id` is still required, so the route handlers send it (customer id, employee
+  number, or the caller's IP before sign-in).
+- **How the portal shows a 429** ("Daily request limit exceeded for customer 1: max 1000 requests per day"): `lib/api.ts` announces it and
+  `components/RateLimitNotice.tsx` pops a dialog once, when the limit is first exceeded, not on every request or load, and again only after a
+  request has succeeded in between. No screen shows it as a red message; a screen that could not load shows a short grey "not available right
+  now" note instead of staying blank. Help explains it at `/help#request-limit`.
+- **Logins today.** "Logins today: N" next to Sign out is the backend's count of the caller's successful sign-ins today (it adds one in
+  `customer_rate_limits` / `employee_rate_limits` at every sign-in, so the portal writes nothing). It comes from the caller's own
+  `GET /portal/rate-limit` / `GET /staff/rate-limit` (token-based, no privilege), fetched once per page load because each call counts as a
+  request against the daily limit; if it can't be loaded nothing is shown.
+
+**Demo data**
+- The backend's `db/data` seeds (customer logins `customer0001`.. with password `2026` + sequence, employee logins named after the email, e.g.
+  `priya.raman`) are for local use only.

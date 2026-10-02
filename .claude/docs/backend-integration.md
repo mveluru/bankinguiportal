@@ -67,7 +67,7 @@ Account numbers are always passed through `encodeURIComponent`.
 - Shapes live in `lib/types.ts`, mirroring the backend DTOs (`org.brite.banking.bff.dto`, `domain`, `request`). Change it only when the backend changes.
 - Withdraw, deposit and close return the refreshed `AccountOverviewResponse`; `lib/api.ts` reduces withdraw/deposit to `AccountResult`.
 - The holder form fields Middle and Country are **not** part of any request body. Phone is sent as `phoneNumber` by `openAccount` only.
-- A suspended account rejects withdraw/deposit with a 400; the UI hides those actions and explains why.
+- Account status is `ACTIVE | SUSPENDED | CLOSED | INACTIVE | DORMANT`. Only ACTIVE accounts can transact (others are refused with a 400, and the UI hides the actions and explains why), and a customer with no ACTIVE account cannot sign in: the backend answers 403 "Sign-in is not available: your account status is <STATUS>. Please contact the customer support service." and the sign-in form shows it as is. INACTIVE and DORMANT are set by hand on the backend for now.
 - Errors become a message via `readErrorMessage` (`lib/http-error.ts`) and are thrown as `ApiError` (with `status`): bean-validation JSON
   (`errors[].defaultMessage`, joined with `; `), or plain text from business rules, shown as is. A proxy failure (backend down) is a 502 with a message.
 

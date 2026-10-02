@@ -236,6 +236,7 @@ Run with `--env-file bankinguiportal.env -p 3000:3000`. Add a `.dockerignore` th
 | Sign-in succeeds but the next page returns to `/login` | Served over HTTP; the `Secure` cookie is dropped. Use HTTPS. |
 | Everyone is signed out | The backend restarted with a random signing key (`BANKING_JWT_SECRET` blank) or the key differs between backend instances; or the 30-minute token simply expired. |
 | Every call returns 502 "Cannot reach the banking service" | `BANKING_BACKEND_URL` is wrong or unreachable from the Next server. |
-| Every call returns 400 about a missing header, or 429 | The backend's rate limiter (`X-Customer-Id`, 1,000 requests per customer per day by default). |
+| A 400 about a missing header, or 429 "Daily request limit exceeded for customer N" | The backend's rate limiter: the `X-Customer-Id` header is required, and each customer/employee gets 1,000 requests a day (kept in MySQL, starting again the next day). Raise that person's limit on the Customer logins / employee screen, or wait. The portal shows a one-time pop-up for it. |
 | A customer or employee gets 403 on everything | They are using the wrong portal (customer token on `/staff`, or the reverse), or their login is not `ACTIVE`. |
+| A customer cannot sign in: "Sign-in is not available: your account status is …" | None of their accounts is ACTIVE (SUSPENDED, CLOSED, INACTIVE or DORMANT); the backend refuses sign-in. Reactivate or fix the account; the portal just shows the backend's message. |
 | `npm ci` fails: lock file out of sync | `package.json` was changed without updating `package-lock.json`; run `npm install` locally and commit both. |

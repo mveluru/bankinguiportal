@@ -32,5 +32,6 @@ Rules:
 | `passwords.ts` | Mirrors the backend's "exactly 8 digits" rule; the backend still validates. |
 | `http-error.ts` | One place that turns the backend's two error shapes into a message. |
 | `faq.ts`, `legal.ts` | User-facing text quoting live config. Update `LAST_UPDATED` in `legal.ts` on any wording change, and keep both in step with real behaviour (what is stored, which cookies, session length). |
+| `greeting.ts` | The one-shot welcome banner: `saveGreeting` at sign-in, `loadGreeting` on the landing screen, `clearGreeting` on navigation or sign-out. Module state, not component state, because Next keeps hidden pages' state alive; `GREETING_MS` (20 s) is how long it stays. |
 | `rate-limit.ts` | The daily-request-limit (429) rules: announce once via the pop-up, clear on the next success, hide the text everywhere else (`isRateLimitMessage`). `api.ts` calls `announceRateLimit` on a 429 and `clearRateLimitNotice` on a success. Do not add other places that display that message. |
 | `format.ts`, `duration.ts`, `navigation.ts` | Small pure helpers; keep them dependency-free and client-safe. |

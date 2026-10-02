@@ -13,4 +13,5 @@ changing a layer, see the matching skill in `../skills/`. Screens and env vars a
 | Request gate and config | [overview.md](overview.md) | [request-gate](../skills/request-gate/SKILL.md) |
 | Calling the banking backend (BFF, proxy, headers, errors) | [backend-integration.md](backend-integration.md) | [lib](../skills/lib/SKILL.md) |
 | Packaging and running in production, step by step | [production_deploy.md](production_deploy.md) | [request-gate](../skills/request-gate/SKILL.md) |
+| End-to-end tests: demo users, spec list, the daily request limit | [testing.md](testing.md) | [e2e](../skills/e2e/SKILL.md) |
 | Key flows | [flows.md](flows.md) | (none) |
