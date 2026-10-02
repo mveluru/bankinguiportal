@@ -229,3 +229,10 @@ form.stack label, form.stack select, form.stack input, form.stack textarea { max
   .lookup-layout { grid-template-columns:minmax(0,1fr); }
   .account-box { justify-self:stretch; width:100%; aspect-ratio:auto; height:70vh; max-height:560px; }
 }
+
+/* ---- Customer rate-limit panel (staff) ---- */
+.rate-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin:0; }
+.rate-stats > div { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+.rate-stats dt { font-size:.8rem; color:var(--muted); }
+.rate-stats dd { margin:0; font-size:1.5rem; font-weight:700; }
+progress { width:100%; height:10px; accent-color:var(--brand); }

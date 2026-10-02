@@ -40,6 +40,7 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 | Close account (CLOSE_ACCOUNT, irreversible) | `/staff/accounts/[accountNumber]/close` | `POST /staff/accounts/{n}/close` |
 | Open an account for a customer (OPEN_ACCOUNT) | `/staff/accounts/open` | `POST /staff/accounts/open` |
 | Customer logins: create, set status, set password (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `POST /staff/customers/{id}/login`, `PUT .../login-status`, `PUT .../password` |
+| Customer daily requests and sign-ins (on the Customer logins screen): the customer's daily limit, whether it is their own or the default, requests today and remaining, and sign-ins today; set their own limit or put them back on the default (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `GET`/`PUT /staff/customers/{id}/rate-limit` |
 | User management: employees list by role (MANAGE_EMPLOYEES) | `/staff/employees` | `GET /staff/employees?role=&page=&size=` |
 | One employee: card, set login status, set password (MANAGE_EMPLOYEES) | `/staff/employees/[employeeNumber]` | `GET /staff/employees/{n}`, `PUT .../login-status`, `PUT .../password` |
 | Settings, change password, security questions | `/staff/settings`, `/password`, `/security-questions` | `PUT /staff/password`, `PUT /staff/security-questions` |
@@ -180,8 +181,11 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
 - **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
   reset never undoes a lock or suspension an employee set.
 - **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (shown once when the limit is first exceeded, not on every request or load, and again only after a request has succeeded in between; no screen shows it as a red message; a screen that could not load shows a short grey "not available right now" note instead of staying blank). Help explains it at `/help#request-limit`.
-- `X-Customer-Id` is the backend gateway's rate-limit key, sent by the route handlers (customer id, employee number, or
-  the caller's IP before sign-in). A 429 from the backend reaches the browser as a normal 429 message.
+- `X-Customer-Id` is still required by the backend gateway and is sent by the route handlers (customer id, employee number, or the
+  caller's IP before sign-in). For a signed-in customer the daily limit is now counted against the customer in the token, not the header,
+  and kept in the backend's `customer_rate_limits` table, so it survives a backend restart and each customer can have their own limit
+  (managers set it on the Customer logins screen). Unauthenticated calls (sign-in, password reset) and staff calls are still counted per
+  header value, in memory. A 429 from the backend reaches the browser as a normal 429 message.
 - The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only
   strictly necessary cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server
   components in `lib/legal.ts`, with a visible "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED`

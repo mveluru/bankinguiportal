@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
+import CustomerRateLimitPanel from "@/components/CustomerRateLimitPanel";
 import { CreateLoginForm, SetPasswordForm, SetStatusForm } from "@/components/CredentialAdmin";
 import { Loading } from "@/components/StateBlock";
 import { createCustomerLogin, setCustomerLoginStatus, setCustomerPassword } from "@/lib/api";
@@ -37,6 +38,7 @@ export default function CustomerLoginsPage() {
       {customerId && (
         <div className="stack wide" key={customerId}>
           <h2 style={{ marginBottom: 0 }}>Customer {customerId}</h2>
+          <CustomerRateLimitPanel customerId={customerId} />
           <CreateLoginForm apply={(username, password) => createCustomerLogin(customerId, username, password)} />
           <SetStatusForm apply={(status, reason) => setCustomerLoginStatus(customerId, status, reason)} />
           <SetPasswordForm apply={(password) => setCustomerPassword(customerId, password)} />

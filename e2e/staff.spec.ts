@@ -75,3 +75,43 @@ test("a manager sees the reactivate page for a suspended account", async ({ page
   await expect(page.getByRole("heading", { name: "Reactivate account" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Reactivate account" })).toBeVisible(); // not clicked: read-only
 });
+
+// Reads a customer's real limit and sign-in count from the backend; the PUT is mocked, so no customer's limit is changed.
+test("a manager sees a customer's daily requests and sign-ins and can set their limit", async ({ page }) => {
+  await signInStaff(page);
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Customer logins" }).click();
+  await page.getByLabel("Customer id").fill(process.env.E2E_CUSTOMER_ID_B ?? "2");
+  await page.getByRole("button", { name: "Select" }).click();
+
+  const panel = page.getByRole("region", { name: "Daily requests and sign-ins" });
+  await expect(panel).toBeVisible();
+  for (const label of ["Sign-ins today", "Requests today", "Remaining today", "Daily limit"]) {
+    await expect(panel.getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(panel.locator("dd").first()).toHaveText(/^\d+$/);
+
+  await page.route("**/api/staff/customers/*/rate-limit", (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ customerId: 2, dailyLimit: 500, customLimit: 500, defaultLimit: 1000, usageDate: "2026-10-01", requestsToday: 10, remainingToday: 490, loginsToday: 3 }),
+        })
+      : route.continue(),
+  );
+  await panel.getByLabel(/own daily limit/).fill("500");
+  await panel.getByRole("button", { name: "Set limit" }).click();
+  await expect(panel.getByText("Daily limit set to 500 requests.")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Use default" })).toBeEnabled();
+});
+
+test("a teller cannot open the customer rate-limit screen", async ({ page }) => {
+  await page.goto("/staff/login");
+  await page.getByLabel("Username").fill(process.env.E2E_TELLER_USER ?? "lucas.meyer");
+  await page.getByLabel("Password").fill(process.env.E2E_TELLER_PASSWORD ?? "20260010");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: "Brite Dashboard" })).toBeVisible();
+  await page.goto("/staff/customers");
+  await expect(page.getByText("Managing customer logins needs the Manager role")).toBeVisible();
+  await expect(page.getByLabel("Customer id")).toHaveCount(0);
+});

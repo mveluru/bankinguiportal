@@ -15,6 +15,7 @@
 | `RateLimitNotice.tsx` | client | Modal pop-up, mounted once in the layout, shown when the API client reports a 429 (daily request limit) with the backend's message and a link to `/help#request-limit`. |
 | `SignOutButton.tsx` | client | Sign out with its confirm dialog; rendered in the top bar next to the theme switch. |
 | `accounts/StatementViewer.tsx` | client | Date range, Generate, then Print and Download CSV for one account. Used by `/accounts/[n]/statement` and the `/statements` page (which adds an account picker). Generating emails/texts the statement, so only on a button press. |
+| `CustomerRateLimitPanel.tsx` | client | Staff: a customer's daily request limit, requests today / remaining and sign-ins today (from the banking service), with set-own-limit and use-default. Shown on the Customer logins screen. |
 | `CredentialAdmin.tsx` | client | Forms used by staff on a login: set status, set password, create login. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |

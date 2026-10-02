@@ -5,6 +5,7 @@ import type {
   AccountRegistrationRequest,
   AccountResult,
   BankStatement,
+  CustomerRateLimitView,
   DepositRequest,
   EmployeeRole,
   LoginStatus,
@@ -132,6 +133,14 @@ export const createCustomerLogin = (customerId: string, username: string, passwo
 
 export const setCustomerLoginStatus = (customerId: string, status: LoginStatus, reason?: string) =>
   request<LoginStatusView>(customerLogin(customerId, "login-status"), send("PUT", { status, reason: reason || undefined }));
+
+/** A customer's daily request limit and today's usage, including successful sign-ins (MANAGE_CUSTOMER_LOGINS). */
+export const getCustomerRateLimit = (customerId: string) =>
+  request<CustomerRateLimitView>(customerLogin(customerId, "rate-limit"));
+
+/** Gives the customer their own daily limit (1 to 1,000,000), or null to put them back on the default. */
+export const setCustomerRateLimit = (customerId: string, maxRequestsPerDay: number | null) =>
+  request<CustomerRateLimitView>(customerLogin(customerId, "rate-limit"), send("PUT", { maxRequestsPerDay }));
 
 export const setCustomerPassword = (customerId: string, newPassword: string) =>
   request<void>(customerLogin(customerId, "password"), send("PUT", { newPassword }));

@@ -168,6 +168,18 @@ export interface PortalEmployee {
   privileges: EmployeePrivilege[];
 }
 
+/** A customer's daily request limit and today's usage (GET/PUT /staff/customers/{id}/rate-limit). */
+export interface CustomerRateLimitView {
+  customerId: number;
+  dailyLimit: number; // the limit that applies today
+  customLimit: number | null; // the customer's own limit; null = on the default
+  defaultLimit: number;
+  usageDate: string;
+  requestsToday: number; // counted against the customer's token
+  remainingToday: number;
+  loginsToday: number; // successful sign-ins today
+}
+
 /** Spring Data page, as returned by GET /staff/employees. */
 export interface Page<T> {
   content: T[];
