@@ -158,6 +158,7 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
 - **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by
   `e2e/mobile.spec.ts`, which fails if anything sticks out past the screen edge. On a phone the left panel is a compact wrap of buttons
   above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
+- **Customer since.** Customers see "Customer since <year>" at the top of the left panel, where staff see their role. It is the year of the earliest account in the sign-in response, kept in the (display-only) profile cookie.
 - **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
   staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
   load and removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The

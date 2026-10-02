@@ -42,6 +42,11 @@ export async function POST(request: Request) {
   const claims = decodeToken(login.accessToken);
   if (!claims) return NextResponse.json({ message: "The banking service returned an unusable token." }, { status: 502 });
 
+  // The backend has no "customer since" field, so it is the year of the customer's earliest account in the sign-in response
+  // (the home bundle lists the newest open accounts only). Display data: it goes in the profile cookie and the welcome banner.
+  const years = ((login.home?.accounts ?? []) as { createdDate?: string }[]).map((a) => Number(a.createdDate?.slice(0, 4))).filter(Boolean);
+  const customerSince = kind === "customer" && years.length ? Math.min(...years) : undefined;
+
   const user: Omit<SessionUser, "sessionExpires"> =
     kind === "staff"
       ? (({ employee, branch }: StaffLogin) => ({
@@ -58,19 +63,14 @@ export async function POST(request: Request) {
           username,
           displayName: `${customer.firstName} ${customer.lastName}`,
           customerId: customer.customerId,
+          customerSince,
         }))(login);
 
-  // Shown once on the landing screen and never stored. The backend has no "customer since" field, so it is the year of
-  // the customer's earliest account in the sign-in response (the home bundle lists the newest open accounts only).
+  // Shown once on the landing screen and never stored.
   const greeting =
     kind === "staff"
       ? `Welcome ${user.displayName} ${user.employeeNumber}`
-      : (() => {
-          const years = ((login.home?.accounts ?? []) as { createdDate?: string }[])
-            .map((a) => Number(a.createdDate?.slice(0, 4)))
-            .filter(Boolean);
-          return `Welcome! ${user.displayName}${years.length ? ` · customer since ${Math.min(...years)}` : ""}`;
-        })();
+      : `Welcome! ${user.displayName}${customerSince ? ` · customer since ${customerSince}` : ""}`;
 
   const maxAge = Math.max(1, claims.exp - Math.floor(Date.now() / 1000));
   const out = NextResponse.json({ ...user, sessionExpires: claims.exp * 1000, greeting });

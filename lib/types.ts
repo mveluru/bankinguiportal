@@ -201,6 +201,7 @@ export interface SessionUser {
   username: string;
   displayName: string;
   customerId?: number; // customers
+  customerSince?: number; // customers: year of their earliest account (display only)
   employeeNumber?: string; // staff
   role?: EmployeeRole;
   privileges?: EmployeePrivilege[];

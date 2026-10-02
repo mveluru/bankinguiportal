@@ -63,6 +63,8 @@ export default function SideNav() {
           )}
         </div>
       )}
+      {/* Customers: "Customer since <year>" in the place where staff see their role. */}
+      {!staff && <p className="side-role static">{user.customerSince ? `Customer since ${user.customerSince}` : "Customer"}</p>}
       <nav aria-label="Main">
         {items.map((i) => (
           <Link key={i.href} href={i.href} className="side-btn" aria-current={active(i) ? "page" : undefined}>

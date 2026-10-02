@@ -31,7 +31,10 @@ test("account screen shows the balance and recent activity", async ({ page }) =>
 test("welcome headline shows once after sign-in and not after navigating on or reloading", async ({ page }) => {
   const greeting = page.getByRole("status").filter({ hasText: /^Welcome! .+ · customer since \d{4}$/ });
   await expect(greeting).toBeVisible();
+  // The left panel shows "Customer since <year>" where staff see their role, and it stays (unlike the banner).
+  await expect(page.locator(".side-role")).toHaveText(/^Customer since \d{4}$/);
   await page.reload();
+  await expect(page.locator(".side-role")).toHaveText(/^Customer since \d{4}$/);
   await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toBeVisible();
   await expect(greeting).toHaveCount(0);
 

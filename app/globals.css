@@ -21,6 +21,8 @@ main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .side-role-box { margin-bottom:10px; }
 .side-role { display:block; width:100%; margin:0; padding:6px 4px; background:none; border:0; border-radius:6px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; text-align:left; color:var(--side-fg); cursor:pointer; }
 .side-role:hover { background:var(--side-hover); }
+.side-role.static { margin:0 0 10px; cursor:default; }
+.side-role.static:hover { background:none; }
 .side-privs { list-style:none; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:var(--card); font-size:.85rem; display:grid; gap:4px; }
 .center { text-align:center; }
 .side-btn { display:flex; align-items:center; width:100%; min-height:44px; padding:10px 14px; border:1px solid transparent; border-radius:8px; background:var(--card); color:var(--side-fg); font-weight:600; text-align:left; cursor:pointer; }
@@ -157,6 +159,7 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
   .sidebar { display:flex; flex-wrap:wrap; gap:8px; padding:10px 16px; }
   .sidebar nav { display:flex; flex-wrap:wrap; gap:8px; position:static; flex:1 1 auto; }
   .side-role-box { flex:1 0 100%; margin:0; }
+  .side-role.static { flex:1 0 100%; margin:0; padding:0 2px; }
   .side-btn { width:auto; flex:1 1 auto; justify-content:center; padding:8px 12px; }
   .login-layout { grid-template-columns:1fr; gap:0; width:auto; left:0; transform:none; padding-right:0; }
   .login-hero { padding-top:0; }
