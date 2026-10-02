@@ -19,7 +19,7 @@ export default function StaffHomePage() {
   return (
     <>
       <Greeting />
-      <h1>Dashboard</h1>
+      <h1 className="center">Brite Banking Dashboard</h1>
       <p className="muted">
         {user.employeeNumber} · {user.role && titleCase(user.role)}
       </p>

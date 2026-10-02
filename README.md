@@ -32,7 +32,7 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 |---|---|---|
 | Staff sign in | `/staff/login` | `POST /staff/login` (via `/api/auth/login`) |
 | Forgot password | `/staff/forgot-password` | `POST /staff/password-reset/questions`, `POST /staff/password-reset` |
-| Dashboard: your role, privileges, branch, account lookup | `/staff` | none (from the sign-in response) |
+| "Brite Banking Dashboard" (centred title): your role, privileges, branch, account lookup; the role (Area Manager / Manager / Teller) is also shown above the Dashboard button in the left panel | `/staff` | none (from the sign-in response) |
 | Account overview for any account (VIEW_ACCOUNT) | `/staff/accounts/[accountNumber]` | `GET /staff/accounts/{n}/overview?days=` |
 | Deposit / Withdraw (DEPOSIT / WITHDRAW; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
 | Suspend an account, or change a suspension's end/notes (SUSPEND_ACCOUNT, UPDATE_SUSPENSION; managers and area managers only, others are redirected to the dashboard) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension` |
@@ -160,7 +160,7 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
 - **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
   staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
-  load and removed when read, so a reload, any navigation or sign-out clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The
+  load and removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The
   backend has no "customer since" field, so the year is the earliest account date in the sign-in response (the newest open accounts only).
 - **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to
   the matching sign-in page. It reads only the token's type and expiry; the backend is the real access control (a customer

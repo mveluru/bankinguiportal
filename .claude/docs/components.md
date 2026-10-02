@@ -4,12 +4,12 @@
 |---|---|---|
 | `AuthProvider.tsx` | client | React context holding the signed-in user (`useAuth`): `login(kind, …)`, `logout`, `expireSession`; plus `can(user, privilege)` for staff. |
 | `NavBar.tsx` | client | Top bar only: brand (staff: name and employee id) and the theme switch. |
-| `SideNav.tsx` | client | The left-hand light-blue panel of feature buttons plus the Sign out button (top right corner, just under the top bar) and its confirm dialog; customer or staff items by `user.kind`, staff items filtered by privilege (**UserMgnt** = employees). Highlights the current section. Hidden when signed out. |
+| `SideNav.tsx` | client | The left-hand light-blue panel of feature buttons plus the Sign out button (top right corner, just under the top bar) and its confirm dialog; customer or staff items by `user.kind`, staff items filtered by privilege (**UserMgnt** = employees). Highlights the current section. For staff the role (Area Manager / Manager / Teller) is shown above the buttons. Hidden when signed out. |
 | `SessionTimeout.tsx` | client | Countdown dialog before the token expires; signs out at expiry using the absolute expiry time. No "stay signed in" (the backend has no refresh). |
 | `IdleLogout.tsx` | client | Signs the user out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any tab; lands on the portal's sign-in page with `?expired=1`. |
 | `auth/SignInForm.tsx`, `ForgotPassword.tsx`, `ChangePassword.tsx`, `SecurityQuestions.tsx`, `SettingsHome.tsx` | client | Credential screens shared by both portals (`kind` prop). |
 | `accounts/AccountDetail.tsx`, `CloseAccount.tsx`, `SuspendAccount.tsx`, `ReactivateAccount.tsx`, `OpenAccount.tsx` | client | Account screens. `AccountDetail` and `CloseAccount` serve both portals; the rest are staff-only. `useStaffAccount` loads the account and redirects roles without the privilege (suspend/reactivate: managers and above). |
-| `Greeting.tsx` | client | One-time welcome banner on the landing screen (`Greeting`) and the layout-level `GreetingReset` that clears it on the first navigation. |
+| `Greeting.tsx` | client | One-time welcome banner on the landing screen (`Greeting`, also removes itself after 20 seconds) and the layout-level `GreetingReset` that clears it on the first navigation. |
 | `accounts/StatementViewer.tsx` | client | Date range, Generate, then Print and Download CSV for one account. Used by `/accounts/[n]/statement` and the `/statements` page (which adds an account picker). Generating emails/texts the statement, so only on a button press. |
 | `CredentialAdmin.tsx` | client | Forms used by staff on a login: set status, set password, create login. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |

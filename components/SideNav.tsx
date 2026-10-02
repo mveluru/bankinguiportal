@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
+import { titleCase } from "@/lib/format";
 
 interface Item {
   href: string;
@@ -58,6 +59,8 @@ export default function SideNav() {
 
   return (
     <aside className="sidebar">
+      {/* Staff: the employee's role (Area Manager, Manager, Teller) above the Dashboard button. */}
+      {staff && user.role && <p className="side-role">{titleCase(user.role)}</p>}
       <nav aria-label="Main">
         {items.map((i) => (
           <Link key={i.href} href={i.href} className="side-btn" aria-current={active(i) ? "page" : undefined}>

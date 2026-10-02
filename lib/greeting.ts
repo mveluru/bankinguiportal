@@ -3,6 +3,8 @@
 // again. After that it lives in this module (not in a component, because Next keeps hidden pages' state alive) until
 // the first navigation, which clears it. Never written to a cookie or the server. Client-safe.
 const KEY = "welcomeGreeting";
+/** How long the banner stays on screen before it removes itself. */
+export const GREETING_MS = 20_000;
 
 let current: string | null = null;
 const listeners = new Set<() => void>();

@@ -48,3 +48,15 @@ test("Statements: pick an account and a date range from the left panel", async (
   await expect(page.getByLabel("To", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Generate statement" })).toBeEnabled();
 });
+
+test("the welcome banner removes itself after 20 seconds", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.clock.install();
+  await signInCustomer(page);
+  const greeting = page.getByRole("status").filter({ hasText: /^Welcome! / });
+  await expect(greeting).toBeVisible();
+  await page.clock.runFor(19_000);
+  await expect(greeting).toBeVisible();
+  await page.clock.runFor(2_000);
+  await expect(greeting).toHaveCount(0);
+});

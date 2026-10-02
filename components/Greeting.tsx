@@ -2,12 +2,18 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { clearGreeting, currentGreeting, loadGreeting, subscribeGreeting } from "@/lib/greeting";
+import { GREETING_MS, clearGreeting, currentGreeting, loadGreeting, subscribeGreeting } from "@/lib/greeting";
 
-/** The one-time welcome headline after sign-in. Shows on the landing screen only: any navigation or reload removes it. */
+/** The one-time welcome headline after sign-in. Shows on the landing screen only: any navigation, a reload, or 20 seconds removes it. */
 export default function Greeting() {
   const text = useSyncExternalStore(subscribeGreeting, currentGreeting, () => null);
   useEffect(() => loadGreeting(), []);
+  // Also goes away on its own after 20 seconds.
+  useEffect(() => {
+    if (!text) return;
+    const t = setTimeout(clearGreeting, GREETING_MS);
+    return () => clearTimeout(t);
+  }, [text]);
   return text ? (
     <p role="status" className="greeting">
       {text}

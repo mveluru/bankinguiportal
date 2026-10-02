@@ -5,7 +5,8 @@ import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
 test("staff sign in, see their role, look up an account and list employees", async ({ page }) => {
   await signInStaff(page);
   await expect(page.getByRole("status").filter({ hasText: /^Welcome Priya Raman EMP-000001$/ })).toBeVisible();
-  await expect(page.getByText("Area Manager").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Brite Banking Dashboard" })).toBeVisible();
+  await expect(page.locator(".side-role")).toHaveText("Area Manager"); // the role sits above the Dashboard button
   await expect(page.getByRole("link", { name: "UserMgnt" })).toBeVisible();
 
   await page.getByLabel("Go to account number").fill(ACCOUNT);
