@@ -22,6 +22,11 @@ main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .side-role { display:block; width:100%; margin:0; padding:6px 4px; background:none; border:0; border-radius:6px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; text-align:left; color:var(--side-fg); cursor:pointer; }
 .side-role:hover { background:var(--side-hover); }
 .side-role.static { margin:0 0 10px; cursor:default; }
+.side-role.static { text-transform:none; letter-spacing:0; }
+.side-account { font-size:.867rem; font-weight:700; letter-spacing:.02em; } /* 1pt smaller than before (15.2px -> 13.9px) */
+.side-name { font-size:.85rem; font-weight:600; }
+.side-since { font-size:.717rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; opacity:.85; }
+.lookup input[readonly] { background:var(--bg); cursor:default; }
 .side-role.static:hover { background:none; }
 .side-privs { list-style:none; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:var(--card); font-size:.85rem; display:grid; gap:4px; }
 .center { text-align:center; }

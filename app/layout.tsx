@@ -7,6 +7,7 @@ import SideNav from "@/components/SideNav";
 import SessionTimeout from "@/components/SessionTimeout";
 import { GreetingReset } from "@/components/Greeting";
 import IdleLogout from "@/components/IdleLogout";
+import RateLimitNotice from "@/components/RateLimitNotice";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SessionTimeout />
           <IdleLogout />
           <GreetingReset />
+          <RateLimitNotice />
           <div className="shell">
             <SideNav />
             <main>{children}</main>

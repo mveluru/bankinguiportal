@@ -35,7 +35,7 @@ export default function SideNav() {
         { href: "/staff/settings", label: "Settings" },
       ]
     : [
-        { href: "/", label: "Home", also: ["/accounts"] },
+        { href: "/", label: "Dashboard", also: ["/accounts"] },
         { href: "/statements", label: "Statements" },
         { href: "/help", label: "Help" },
         { href: "/settings", label: "Settings" },
@@ -63,8 +63,14 @@ export default function SideNav() {
           )}
         </div>
       )}
-      {/* Customers: "Customer since <year>" in the place where staff see their role. */}
-      {!staff && <p className="side-role static">{user.customerSince ? `Customer since ${user.customerSince}` : "Customer"}</p>}
+      {/* Customers: their account id, then their name, then "Customer since <year>", where staff see their role. */}
+      {!staff && (
+        <div className="side-role static">
+          {user.accountNumbers?.[0] && <div className="side-account">{user.accountNumbers[0]}</div>}
+          <div className="side-name">{user.displayName}</div>
+          <div className="side-since">{user.customerSince ? `Customer since ${user.customerSince}` : "Customer"}</div>
+        </div>
+      )}
       <nav aria-label="Main">
         {items.map((i) => (
           <Link key={i.href} href={i.href} className="side-btn" aria-current={active(i) ? "page" : undefined}>

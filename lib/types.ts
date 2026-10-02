@@ -202,6 +202,7 @@ export interface SessionUser {
   displayName: string;
   customerId?: number; // customers
   customerSince?: number; // customers: year of their earliest account (display only)
+  accountNumbers?: string[]; // customers: their own accounts at sign-in, oldest first (display and defaults only; the backend enforces ownership)
   employeeNumber?: string; // staff
   role?: EmployeeRole;
   privileges?: EmployeePrivilege[];

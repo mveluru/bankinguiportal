@@ -27,7 +27,7 @@ test("a customer cannot reach the staff portal, and staff land on theirs", async
   await signInCustomer(page);
   await page.goto("/staff/employees");
   await expect(page).not.toHaveURL(/\/staff/);
-  await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 });
 
 test("signing out ends the session", async ({ page }) => {

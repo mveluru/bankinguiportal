@@ -13,6 +13,7 @@ handlers and server components.
 | `http-error.ts` | `readErrorMessage`: the backend's two error shapes (plain text vs Spring JSON) as one string. |
 | `session.ts` | Cookie names and options, `decodeToken` (claims read WITHOUT verifying; routing and display only), `tokenKind`, `homeOf` / `loginOf`. Edge-safe: `proxy.ts` imports it. |
 | `greeting.ts` | The one-shot welcome headline: `saveGreeting` at sign-in, `loadGreeting` on the landing screen, `clearGreeting` on navigation or sign-out. Module state, because Next keeps hidden pages' component state alive. |
+| `rate-limit.ts` | `announceRateLimit` / `RATE_LIMIT_EVENT`: how `api.ts` tells the layout's pop-up that the daily request limit (429) was hit. |
 | `passwords.ts` | The 8-digit password rule for forms (the backend validates again). |
 | `format.ts` | `formatMoney`, `accountLabel`, `titleCase`, `accountHref(kind, n, tail)`. |
 | `duration.ts` | Turns configured seconds into words and parses positive numbers from env strings. |

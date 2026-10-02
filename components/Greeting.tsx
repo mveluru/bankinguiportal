@@ -21,6 +21,9 @@ export default function Greeting() {
   ) : null;
 }
 
+/** True while the one-time welcome banner is on screen (so a heading can say "Welcome" only as long as the banner does). */
+export const useGreetingActive = () => !!useSyncExternalStore(subscribeGreeting, currentGreeting, () => null);
+
 /** Mounted once in the layout: the first route change after the landing screen clears the greeting. */
 export function GreetingReset() {
   const pathname = usePathname();

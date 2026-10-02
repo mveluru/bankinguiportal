@@ -38,7 +38,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       answer: [
         "Customers can view their accounts and recent activity, deposit to and withdraw from checking and savings accounts, generate statements, close an account and find branches and ATMs. Bank staff use a separate staff portal to open accounts, suspend and reactivate them, and manage logins.",
       ],
-      links: [{ href: "/", label: "Go to Home" }],
+      links: [{ href: "/", label: "Go to Dashboard" }],
     },
     {
       id: "open-account",
@@ -53,7 +53,7 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Getting started",
       question: "Where do I find my account number?",
       answer: [
-        "Your accounts are listed on the Home page. Checking accounts start with CH- and savings accounts with SV-, followed by 10 digits (for example CH-0000088291).",
+        "Your accounts are listed on the Dashboard. Checking accounts start with CH- and savings accounts with SV-, followed by 10 digits (for example CH-0000088291).",
       ],
     },
 
@@ -202,9 +202,9 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Accounts & transactions",
       question: "How do I find a branch or ATM?",
       answer: [
-        "The Home page lists branches and ATMs with their hours, phone numbers and services. Enter a two-letter state code, for example TX, to filter the list.",
+        "The Dashboard lists branches and ATMs with their hours, phone numbers and services. Enter a two-letter state code, for example TX, to filter the list.",
       ],
-      links: [{ href: "/", label: "Go to Home" }],
+      links: [{ href: "/", label: "Go to Dashboard" }],
     },
 
     // ---- Settings ----
@@ -251,8 +251,18 @@ export function buildFaqs(supportEmail?: string): Faq[] {
       category: "Troubleshooting",
       question: "It says it can't reach the banking service",
       answer: [
-        "The service may be down, or you may have reached the daily request limit (1,000 requests per customer per day by default). Wait a little and try again.",
+        "The service may be down, or you may have reached the daily request limit (1,000 requests per customer per day by default; see the next question). Wait a little and try again.",
       ],
+    },
+    {
+      id: "request-limit",
+      category: "Troubleshooting",
+      question: "It says “Daily request limit exceeded for customer 1: max 1000 requests per day”",
+      answer: [
+        "The bank limits how many requests each customer, and each employee, can make in one day (1,000 by default). Every screen load, balance check or transaction counts. When the limit is used up the bank refuses further requests, and the portal shows a pop-up with that message on whatever screen you are on.",
+        "Nothing is wrong with your account. The count starts again when the bank's daily limit resets, so try again then. If you need access sooner, contact your branch.",
+      ],
+      links: [{ href: "/help#cannot-reach-service", label: "Can't reach the banking service" }],
     },
     {
       id: "no-access",

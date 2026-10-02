@@ -1,4 +1,5 @@
 import { readErrorMessage } from "@/lib/http-error";
+import { announceRateLimit } from "@/lib/rate-limit";
 import type {
   AccountOverviewResponse,
   AccountRegistrationRequest,
@@ -42,7 +43,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new ApiError("Cannot reach the portal server.");
   }
-  if (!res.ok) throw new ApiError(await readErrorMessage(res), res.status);
+  if (!res.ok) {
+    const message = await readErrorMessage(res);
+    if (res.status === 429) announceRateLimit(message); // the daily request limit: also pops up on screen
+    throw new ApiError(message, res.status);
+  }
   return res.status === 204 ? (undefined as T) : res.json();
 }
 

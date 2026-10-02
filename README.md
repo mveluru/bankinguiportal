@@ -14,7 +14,7 @@ BFF with `Authorization: Bearer`, so scripts in the page never see the token.
 |---|---|---|
 | Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
 | Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
-| Home (the same "Go to account number" box and details panel, then your accounts and branches/ATMs with a state filter) | `/` | `GET /portal/home?state=` |
+| Dashboard (the customer home; the same "Go to account number" box and details panel, then your accounts and branches/ATMs with a state filter) | `/` | `GET /portal/home?state=` |
 | Statements: choose an account and a date range, then print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `GET /portal/home`, `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
 | Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
@@ -158,10 +158,10 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
 - **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by
   `e2e/mobile.spec.ts`, which fails if anything sticks out past the screen edge. On a phone the left panel is a compact wrap of buttons
   above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
-- **Customer since.** Customers see "Customer since <year>" at the top of the left panel, where staff see their role. It is the year of the earliest account in the sign-in response, kept in the (display-only) profile cookie.
+- **Customer since.** Customers see their account id, their name and "Customer since <year>" at the top of the left panel, where staff see their role. A customer's "Go to account number" box is filled in with their own account id and cannot be edited (a list of just their accounts if they have several); the backend refuses any other account (403) regardless. It is the year of the earliest account in the sign-in response, kept in the (display-only) profile cookie.
 - **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
   staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
-  load and removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The
+  load and removed when read, so a reload, any navigation, sign-out or 20 seconds on screen clears it (the customer home heading reads "Welcome" only while the banner is up, then "Dashboard") (`lib/greeting.ts`, `components/Greeting.tsx`). The
   backend has no "customer since" field, so the year is the earliest account date in the sign-in response (the newest open accounts only).
 - **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to
   the matching sign-in page. It reads only the token's type and expiry; the backend is the real access control (a customer
@@ -173,6 +173,7 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   signs the user out and asks them to sign in again.
 - **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
   reset never undoes a lock or suspension an employee set.
+- **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (the Dashboard shows nothing inline about it). Help explains it at `/help#request-limit`.
 - `X-Customer-Id` is the backend gateway's rate-limit key, sent by the route handlers (customer id, employee number, or
   the caller's IP before sign-in). A 429 from the backend reaches the browser as a normal 429 message.
 - The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only

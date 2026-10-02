@@ -2,24 +2,31 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getHome } from "@/lib/api";
+import { ApiError, getHome } from "@/lib/api";
 import { accountLabel, formatSuspendedUntil } from "@/lib/format";
 import type { PortalHomeResponse } from "@/lib/types";
 import AccountLookup from "@/components/accounts/AccountLookup";
-import Greeting from "@/components/Greeting";
+import Greeting, { useGreetingActive } from "@/components/Greeting";
 import LocationCard from "@/components/LocationCard";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
 
 export default function HomePage() {
+  const welcome = useGreetingActive(); // "Welcome" goes away with the banner, after 20 seconds
   const [state, setState] = useState("");
   const [data, setData] = useState<PortalHomeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     getHome(state.length === 2 ? state : undefined)
-      .then((d) => !cancelled && (setData(d), setError(null)))
-      .catch((e: Error) => !cancelled && setError(e.message));
+      .then((d) => !cancelled && (setData(d), setError(null), setSettled(true)))
+      .catch((e: Error) => {
+        if (cancelled) return;
+        // The daily request limit has its own pop-up (RateLimitNotice); the screen itself shows nothing about it.
+        if (!(e instanceof ApiError && e.status === 429)) setError(e.message);
+        setSettled(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -28,11 +35,11 @@ export default function HomePage() {
   return (
     <>
       <Greeting />
-      <h1>Welcome</h1>
+      <h1>{welcome ? "Welcome" : "Dashboard"}</h1>
       <AccountLookup kind="customer" />
 
       {error && <ErrorMessage message={error} />}
-      {!data && !error && <Loading />}
+      {!settled && !error && <Loading />}
       {data && (
         <>
           <h2>Your accounts ({data.totalActiveAccounts} active, {data.totalSuspendedAccounts} suspended)</h2>

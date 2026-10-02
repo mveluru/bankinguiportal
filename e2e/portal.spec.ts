@@ -13,8 +13,11 @@ test("home lists accounts from the banking service", async ({ page }) => {
 });
 
 test("account screen shows the balance and recent activity", async ({ page }) => {
-  await expect(page.getByLabel("Go to account number")).toHaveValue(""); // no default account number
-  await page.getByLabel("Go to account number").fill(ACCOUNT);
+  // A customer can only look at their own account: the box is filled in with it and cannot be edited.
+  await expect(page.locator(".side-account")).toHaveText(ACCOUNT); // account id, then the name, then "Customer since" in the left panel
+  await expect(page.locator(".side-name")).toHaveText(/\S+ \S+/);
+  await expect(page.getByLabel("Go to account number")).toHaveValue(ACCOUNT);
+  await expect(page.getByLabel("Go to account number")).toHaveAttribute("readonly", "");
   await page.getByRole("button", { name: "View" }).click();
 
   // The details open in the box on the right of the same screen (no navigation).
@@ -32,17 +35,17 @@ test("welcome headline shows once after sign-in and not after navigating on or r
   const greeting = page.getByRole("status").filter({ hasText: /^Welcome! .+ · customer since \d{4}$/ });
   await expect(greeting).toBeVisible();
   // The left panel shows "Customer since <year>" where staff see their role, and it stays (unlike the banner).
-  await expect(page.locator(".side-role")).toHaveText(/^Customer since \d{4}$/);
+  await expect(page.locator(".side-role")).toHaveText(/Customer since \d{4}$/);
   await page.reload();
-  await expect(page.locator(".side-role")).toHaveText(/^Customer since \d{4}$/);
-  await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toBeVisible();
+  await expect(page.locator(".side-role")).toHaveText(/Customer since \d{4}$/);
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(greeting).toHaveCount(0);
 
   await page.context().clearCookies();
   await signInCustomer(page); // fresh sign-in: shown again, then gone after moving to another screen and back
   await page.getByRole("link", { name: "Help" }).first().click();
   await expect(page).toHaveURL(/\/help$/); // wait for the route change: the banner is cleared by navigating, not by clicking
-  await page.getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: "Dashboard" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(greeting).toHaveCount(0);
 });
@@ -67,6 +70,22 @@ test("the welcome banner removes itself after 20 seconds", async ({ page }) => {
   await expect(greeting).toBeVisible();
   await page.clock.runFor(19_000);
   await expect(greeting).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toBeVisible();
   await page.clock.runFor(2_000);
   await expect(greeting).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toHaveCount(0); // the word goes with the banner
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+});
+
+test("the daily request limit pops up on screen and is explained in Help", async ({ page }) => {
+  const message = "Daily request limit exceeded for customer 1: max 1000 requests per day";
+  await page.route("**/api/portal/home**", (route) => route.fulfill({ status: 429, contentType: "text/plain", body: message }));
+  await page.goto("/");
+  const dialog = page.getByRole("dialog", { name: "Daily request limit reached" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText(message)).toBeVisible();
+  await expect(page.locator("p.error")).toHaveCount(0); // the limit message is in the pop-up only, not on the screen
+  await dialog.getByRole("link", { name: "Read more in Help" }).click();
+  await expect(page).toHaveURL(/\/help#request-limit$/);
+  await expect(page.getByText("Daily request limit exceeded for customer 1: max 1000 requests per day").first()).toBeVisible();
 });

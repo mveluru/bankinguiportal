@@ -43,8 +43,12 @@ export async function POST(request: Request) {
   if (!claims) return NextResponse.json({ message: "The banking service returned an unusable token." }, { status: 502 });
 
   // The backend has no "customer since" field, so it is the year of the customer's earliest account in the sign-in response
-  // (the home bundle lists the newest open accounts only). Display data: it goes in the profile cookie and the welcome banner.
-  const years = ((login.home?.accounts ?? []) as { createdDate?: string }[]).map((a) => Number(a.createdDate?.slice(0, 4))).filter(Boolean);
+  // (the home bundle lists the newest open accounts only). Display data: it goes in the profile cookie and the welcome banner. The same
+  // bundle gives the customer's own account ids, used as the default of the lookup box; the backend still enforces ownership.
+  const owned = ((login.home?.accounts ?? []) as { accountNumber: string; createdDate?: string }[])
+    .slice()
+    .sort((a, b) => String(a.createdDate).localeCompare(String(b.createdDate)));
+  const years = owned.map((a) => Number(a.createdDate?.slice(0, 4))).filter(Boolean);
   const customerSince = kind === "customer" && years.length ? Math.min(...years) : undefined;
 
   const user: Omit<SessionUser, "sessionExpires"> =
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
           displayName: `${customer.firstName} ${customer.lastName}`,
           customerId: customer.customerId,
           customerSince,
+          accountNumbers: owned.map((a) => a.accountNumber),
         }))(login);
 
   // Shown once on the landing screen and never stored.

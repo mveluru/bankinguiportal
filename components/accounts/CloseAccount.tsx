@@ -63,7 +63,7 @@ export default function CloseAccount({ kind }: { kind: PortalKind }) {
         <div className="link-list">
           {back}
           <Link href={kind === "staff" ? "/staff" : "/"} className="tap">
-            Home
+            Dashboard
           </Link>
         </div>
       </>
