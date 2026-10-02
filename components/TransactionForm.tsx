@@ -121,9 +121,12 @@ export default function TransactionForm({ kind, portal = "customer" }: { kind: "
       {back}
       <h1>{isWithdraw ? "Withdraw funds" : "Deposit funds"}</h1>
       <p className="muted">
-        {accountLabel(account.accountType)} {account.accountNumber} · balance {formatMoney(account.balance)}
+        {accountLabel(account.accountType)} {account.accountNumber}
       </p>
       <form className="stack wide" onSubmit={onSubmit}>
+        <p style={{ margin: 0 }}>
+          Current Balance: <strong>{formatMoney(account.balance)}</strong>
+        </p>
         <label>
           <span>Amount (USD)<span className="req">*</span></span>
           <input name="amount" type="number" step="0.01" min="0.01" required />

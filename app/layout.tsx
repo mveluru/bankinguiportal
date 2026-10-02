@@ -3,6 +3,7 @@ import Link from "next/link";
 import CookieNotice from "@/components/CookieNotice";
 import AuthProvider from "@/components/AuthProvider";
 import NavBar from "@/components/NavBar";
+import SideNav from "@/components/SideNav";
 import SessionTimeout from "@/components/SessionTimeout";
 import { GreetingReset } from "@/components/Greeting";
 import IdleLogout from "@/components/IdleLogout";
@@ -30,7 +31,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SessionTimeout />
           <IdleLogout />
           <GreetingReset />
-          <main>{children}</main>
+          <div className="shell">
+            <SideNav />
+            <main>{children}</main>
+          </div>
           <footer className="site-footer">
             <nav aria-label="Legal and help">
               <Link href="/terms" className="tap">

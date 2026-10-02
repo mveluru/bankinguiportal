@@ -1,20 +1,37 @@
-:root { color-scheme: light dark; --bg:#f5f7fa; --fg:#1b2733; --muted:#5f6c7b; --brand:#0b5cad; --card:#fff; --line:#dde3ea; --err:#b3261e; }
+:root { color-scheme: light dark; --bg:#f5f7fa; --fg:#1b2733; --muted:#5f6c7b; --brand:#0b5cad; --card:#fff; --line:#dde3ea; --err:#b3261e; --side-bg:#dcebfa; --side-hover:#c3dcf6; --side-fg:#0b3d75; }
 :root[data-theme="light"] { color-scheme: light; }
 /* Dark palette applies for the OS setting unless the user forced light, or when the user forced dark. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
+  :root:not([data-theme="light"]) { --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; --side-bg:#1c3552; --side-hover:#26486d; --side-fg:#cfe4ff; }
 }
-:root[data-theme="dark"] { color-scheme: dark; --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; }
+:root[data-theme="dark"] { color-scheme: dark; --bg:#12171d; --fg:#e6ebf0; --muted:#98a4b2; --brand:#5aa9ff; --card:#1b232c; --line:#2c3743; --err:#ff8a80; --side-bg:#1c3552; --side-hover:#26486d; --side-fg:#cfe4ff; }
 * { box-sizing: border-box; }
 body { margin:0; min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--fg); font-family: system-ui, sans-serif; line-height:1.5; }
 a { color:var(--brand); text-decoration:none; }
 a:hover { text-decoration:underline; }
 main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .topbar { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--card); border-bottom:1px solid var(--line); }
-.topbar nav { order:2; margin-left:auto; display:flex; align-items:center; gap:16px; }
-.topbar-actions { order:3; display:flex; align-items:center; gap:8px; }
-.topbar-actions.push { margin-left:auto; } /* signed out: no nav to push the controls right */
-.nav-toggle { display:none; }
+.topbar-actions { display:flex; align-items:center; gap:8px; }
+.topbar-actions.push { margin-left:auto; }
+/* Layout: the light-blue left panel (signed in only) beside the page. */
+.shell { flex:1; display:flex; align-items:stretch; position:relative; }
+.shell main { min-width:0; }
+.sidebar { flex:0 0 220px; background:var(--side-bg); border-right:1px solid var(--line); padding:16px 12px; }
+.sidebar nav { display:grid; gap:8px; position:sticky; top:16px; }
+.side-btn { display:flex; align-items:center; width:100%; min-height:44px; padding:10px 14px; border:1px solid transparent; border-radius:8px; background:var(--card); color:var(--side-fg); font-weight:600; text-align:left; cursor:pointer; }
+/* Sign out: top right corner of the page, just under the top bar. */
+.signout-corner { position:absolute; top:12px; right:24px; z-index:5; }
+/* Keep page content clear of the Sign out button in the corner. */
+.sidebar ~ main { padding-top:64px; }
+.side-btn:hover { background:var(--side-hover); text-decoration:none; }
+.side-btn[aria-current="page"] { background:var(--brand); color:#fff; }
+/* Sign-in screens: the form is a card on the right, a little below the header, like a bank's sign-in page. */
+/* Wider than the 960px page column, so the card sits toward the right edge of the window. */
+.login-layout { display:grid; grid-template-columns:1fr minmax(300px, 380px); gap:32px; align-items:start; width:calc(100vw - 40px); max-width:none; padding-right:.5in; position:relative; left:50%; transform:translateX(-50%); }
+.login-hero { padding-top:0; }
+.login-hero h1 { font-size:2rem; }
+.login-card { margin-top:8px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px; box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.login-card h2 { margin:0 0 16px; color:var(--brand); }
 .brand { font-weight:700; font-size:1.2rem; }
 h1 { margin-top:0; } h2 { margin-top:32px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
@@ -37,6 +54,7 @@ fieldset.subsection .row > label { flex:1 1 150px; }
 fieldset.subsection .row > label.narrow-dob { flex:0 1 200px; }
 fieldset.subsection .row > label.narrow-phone { flex:0 1 220px; }
 fieldset.subsection .row > label.narrow { flex:0 1 110px; }
+fieldset.subsection .row > label.narrow-state { flex:0 1 180px; }
 .req { color:var(--err); margin-left:2px; }
 .req-note { margin:0; }
 label { display:grid; gap:4px; font-size:.9rem; }
@@ -124,15 +142,22 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
 
 /* Phones: hamburger menu, tighter spacing, full-width primary buttons, stacked table cards. */
 @media (max-width: 640px) {
-  .topbar { flex-wrap:wrap; gap:8px 12px; padding:8px 16px; }
-  .brand { order:1; margin-right:auto; }
+  .topbar { gap:8px 12px; padding:8px 16px; }
+  .brand { order:1; flex:1 1 0; min-width:0; font-size:1.05rem; overflow-wrap:anywhere; }
   .topbar-actions { order:2; }
-  .nav-toggle { display:inline-flex; align-items:center; justify-content:center; min-width:44px; }
-  .topbar nav { order:3; flex-basis:100%; margin:0; display:none; flex-direction:column; align-items:stretch; gap:0; border-top:1px solid var(--line); }
-  .topbar nav.open { display:flex; }
-  .topbar nav a, .topbar nav button.link { display:flex; align-items:center; justify-content:flex-start; min-height:48px; padding:0 4px; border-bottom:1px solid var(--line); border-radius:0; text-align:left; }
-  .topbar nav > :last-child { border-bottom:0; }
   main { padding:16px; }
+  /* The left panel becomes a strip of buttons above the page. */
+  .shell { flex-direction:column; }
+  .sidebar { flex:none; border-right:0; border-bottom:1px solid var(--line); padding:12px 16px; }
+  /* Compact chips that wrap, Sign out in the same flow, so the menu doesn't fill the first screen. */
+  .sidebar { display:flex; flex-wrap:wrap; gap:8px; padding:10px 16px; }
+  .sidebar nav { display:flex; flex-wrap:wrap; gap:8px; position:static; flex:1 1 auto; }
+  .side-btn { width:auto; flex:1 1 auto; justify-content:center; padding:8px 12px; }
+  .signout-corner { position:static; flex:0 0 auto; }
+  .sidebar ~ main { padding-top:16px; }
+  .login-layout { grid-template-columns:1fr; gap:0; width:auto; left:0; transform:none; padding-right:0; }
+  .login-hero { padding-top:0; }
+  .login-card { margin-top:16px; }
   h1 { font-size:1.6rem; }
   h2 { margin-top:24px; }
   .balance { font-size:1.75rem; }
@@ -160,3 +185,18 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
   table.legal-table td:first-child { justify-content:flex-start; text-align:left; font-size:1.05rem; background:var(--bg); border-radius:8px 8px 0 0; }
   table.legal-table td:first-child::before { display:none; }
 }
+
+/* ---- Print (statements) ---- */
+@media print {
+  .topbar, .sidebar, .site-footer, .cookie-notice, .no-print, dialog { display:none !important; }
+  .shell, main { display:block; padding:0 !important; max-width:none; }
+  body { background:#fff; color:#000; }
+}
+
+/* ---- Long option text (security questions, account pickers) must never widen the page on a phone ---- */
+select { max-width:100%; text-overflow:ellipsis; }
+form.stack > *, fieldset { min-width:0; }
+/* A fieldset is not a grid like form.stack, so give the grouped fields (security questions) the same width rules. */
+fieldset.stack { display:grid; gap:12px; }
+fieldset.stack label, fieldset.stack select, fieldset.stack input { min-width:0; width:100%; }
+form.stack label, form.stack select, form.stack input, form.stack textarea { max-width:100%; }

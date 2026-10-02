@@ -21,4 +21,4 @@ tells the user to sign in again.
 `POST .../password-reset` with the answers and a new 8-digit password. It never lifts a lock or suspension.
 
 **Staff actions.** The UI hides what the role's privileges (from the sign-in response) lack, and the backend refuses it again (403).
-Area managers have no branch, so deposits and withdrawals ask for a branch/ATM id (`?locationId=`).
+Suspend and reactivate are separate pages for managers and above; a teller who opens them is redirected to `/staff`. Area managers have no branch, so deposits and withdrawals ask for a branch/ATM id (`?locationId=`).

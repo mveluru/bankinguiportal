@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
-import { accountsApi, reactivateAccount, suspendAccount, updateSuspension } from "@/lib/api";
+import { useStaffAccount } from "@/components/accounts/useStaffAccount";
+import { suspendAccount, updateSuspension } from "@/lib/api";
 import { accountHref, accountLabel, formatMoney, formatSuspendedUntil } from "@/lib/format";
 import type { AccountOverviewResponse } from "@/lib/types";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
@@ -12,25 +12,17 @@ import { ErrorMessage, Loading } from "@/components/StateBlock";
 /** <input type="datetime-local"> yields yyyy-MM-ddTHH:mm; the API wants an ISO local date-time. */
 const toApiDateTime = (v: string) => (v ? `${v}:00` : undefined);
 
-/** Staff only: suspend an active account, or change / lift the current suspension. Each action needs its own privilege. */
+/**
+ * Staff only (managers and area managers): suspend an active account (SUSPEND_ACCOUNT), or change a suspension's end and notes
+ * (UPDATE_SUSPENSION). Lifting a suspension is its own screen: ReactivateAccount.
+ */
 export default function SuspendAccount() {
-  const { accountNumber } = useParams<{ accountNumber: string }>();
   const { user } = useAuth();
-  const { getOverview } = accountsApi("staff");
-  const [account, setAccount] = useState<AccountOverviewResponse | null>(null);
+  const { accountNumber, account, setAccount, error, setError, permitted } = useStaffAccount(
+    (u) => can(u, "SUSPEND_ACCOUNT") || can(u, "UPDATE_SUSPENSION"),
+  );
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getOverview(accountNumber)
-      .then((a) => !cancelled && setAccount(a))
-      .catch((e: Error) => !cancelled && setError(e.message));
-    return () => {
-      cancelled = true;
-    };
-  }, [accountNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function run(action: () => Promise<AccountOverviewResponse>, done: string) {
     setSubmitting(true);
@@ -81,6 +73,7 @@ export default function SuspendAccount() {
     </Link>
   );
 
+  if (!permitted) return <Loading />;
   if (!account) return error ? <ErrorMessage message={error} /> : <Loading />;
 
   if (account.accountStatus === "CLOSED") {
@@ -92,11 +85,11 @@ export default function SuspendAccount() {
     );
   }
 
-  if (account.suspended ? !can(user, "UPDATE_SUSPENSION") && !can(user, "REACTIVATE_ACCOUNT") : !can(user, "SUSPEND_ACCOUNT")) {
+  if (account.suspended ? !can(user, "UPDATE_SUSPENSION") : !can(user, "SUSPEND_ACCOUNT")) {
     return (
       <>
         {back}
-        <p className="error">Your role does not allow {account.suspended ? "changing or lifting a suspension" : "suspending accounts"}. Ask a manager.</p>
+        <p className="error">Your role does not allow {account.suspended ? "changing a suspension" : "suspending accounts"}. Ask a manager.</p>
       </>
     );
   }
@@ -124,19 +117,14 @@ export default function SuspendAccount() {
             </label>
             {error && <ErrorMessage message={error} />}
             <div className="row actions">
-              {can(user, "UPDATE_SUSPENSION") && (
-                <button type="submit" disabled={submitting}>
-                  {submitting ? "Saving…" : "Update suspension"}
-                </button>
-              )}
-              <button
-                type="button"
-                hidden={!can(user, "REACTIVATE_ACCOUNT")}
-                disabled={submitting}
-                onClick={() => run(() => reactivateAccount(accountNumber), "Account reactivated.")}
-              >
-                Reactivate account
+              <button type="submit" disabled={submitting}>
+                {submitting ? "Saving…" : "Update suspension"}
               </button>
+              {can(user, "REACTIVATE_ACCOUNT") && (
+                <Link href={accountHref("staff", accountNumber, "/reactivate")} className="btn">
+                  Reactivate account
+                </Link>
+              )}
             </div>
           </form>
         </>

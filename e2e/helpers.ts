@@ -13,5 +13,6 @@ async function signIn(page: Page, path: string, who: { user: string; password: s
   await expect(page.getByRole("heading", { name: landing })).toBeVisible();
 }
 
-export const signInCustomer = (page: Page) => signIn(page, "/login", CUSTOMER, "Welcome");
+// exact: the sign-in page has its own "Welcome to Brite Banking" heading, which must not count as having signed in.
+export const signInCustomer = (page: Page) => signIn(page, "/login", CUSTOMER, /^Welcome$/);
 export const signInStaff = (page: Page) => signIn(page, "/staff/login", STAFF, "Dashboard");

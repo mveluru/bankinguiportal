@@ -1,5 +1,18 @@
 "use client";
 
+const STATES: [string, string][] = [
+  ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"],
+  ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"], ["GA", "Georgia"],
+  ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"], ["KS", "Kansas"],
+  ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"], ["MD", "Maryland"], ["MA", "Massachusetts"],
+  ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"], ["MO", "Missouri"], ["MT", "Montana"],
+  ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"],
+  ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"], ["OK", "Oklahoma"],
+  ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"], ["SC", "South Carolina"], ["SD", "South Dakota"],
+  ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"], ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"],
+  ["WV", "West Virginia"], ["WI", "Wisconsin"], ["WY", "Wyoming"],
+];
+
 /** Keeps only digits (max 10) and shows them as 123-456-7890; a hyphen appears only once more digits follow it. */
 function formatPhone(raw: string) {
   const d = raw.replace(/\D/g, "").slice(0, 10);
@@ -82,9 +95,15 @@ export default function HolderFields({
             <span>City<span className="req">*</span></span>
             <input name="city" required maxLength={50} />
           </label>
-          <label className="narrow">
+          <label className="narrow-state">
             <span>State<span className="req">*</span></span>
-            <input name="state" required maxLength={2} pattern="[A-Za-z]{2}" placeholder="TX" />
+            {/* The value is the two-letter code the backend requires; the list scrolls inside the dropdown. */}
+            <select name="state" required defaultValue="">
+              <option value="" disabled>Select</option>
+              {STATES.map(([code, name]) => (
+                <option key={code} value={code}>{code} – {name}</option>
+              ))}
+            </select>
           </label>
           <label className="narrow">
             <span>ZIP<span className="req">*</span></span>

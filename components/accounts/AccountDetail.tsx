@@ -63,13 +63,20 @@ export default function AccountDetail({ kind }: { kind: PortalKind }) {
       )}
       {staff && data.accountStatus !== "CLOSED" && (
         <div className="row" style={{ marginTop: 12 }}>
-          {data.suspended
-            ? (can(user, "UPDATE_SUSPENSION") || can(user, "REACTIVATE_ACCOUNT")) && (
+          {data.suspended ? (
+            <>
+              {can(user, "UPDATE_SUSPENSION") && (
                 <Link href={accountHref(kind, data.accountNumber, "/suspend")} className="btn">Manage suspension</Link>
-              )
-            : can(user, "SUSPEND_ACCOUNT") && (
-                <Link href={accountHref(kind, data.accountNumber, "/suspend")} className="btn">Suspend account</Link>
               )}
+              {can(user, "REACTIVATE_ACCOUNT") && (
+                <Link href={accountHref(kind, data.accountNumber, "/reactivate")} className="btn">Reactivate account</Link>
+              )}
+            </>
+          ) : (
+            can(user, "SUSPEND_ACCOUNT") && (
+              <Link href={accountHref(kind, data.accountNumber, "/suspend")} className="btn">Suspend account</Link>
+            )
+          )}
         </div>
       )}
       {data.accountStatus === "ACTIVE" && ["CHECKING", "SAVINGS"].includes(data.accountType) && (

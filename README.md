@@ -15,6 +15,7 @@ BFF with `Authorization: Bearer`, so scripts in the page never see the token.
 | Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
 | Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
 | Home (accounts + branches/ATMs, state filter) | `/` | `GET /portal/home?state=` |
+| Statements: choose an account and a date range, then print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `GET /portal/home`, `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
 | Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
 | Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
@@ -34,7 +35,8 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 | Dashboard: your role, privileges, branch, account lookup | `/staff` | none (from the sign-in response) |
 | Account overview for any account (VIEW_ACCOUNT) | `/staff/accounts/[accountNumber]` | `GET /staff/accounts/{n}/overview?days=` |
 | Deposit / Withdraw (DEPOSIT / WITHDRAW; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
-| Suspend, change or lift a suspension (SUSPEND_ACCOUNT, UPDATE_SUSPENSION, REACTIVATE_ACCOUNT) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension`, `POST .../reactivate` |
+| Suspend an account, or change a suspension's end/notes (SUSPEND_ACCOUNT, UPDATE_SUSPENSION; managers and area managers only, others are redirected to the dashboard) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension` |
+| Reactivate a suspended account (REACTIVATE_ACCOUNT; managers and area managers only) | `/staff/accounts/[accountNumber]/reactivate` | `POST .../reactivate` |
 | Close account (CLOSE_ACCOUNT, irreversible) | `/staff/accounts/[accountNumber]/close` | `POST /staff/accounts/{n}/close` |
 | Open an account for a customer (OPEN_ACCOUNT) | `/staff/accounts/open` | `POST /staff/accounts/open` |
 | Customer logins: create, set status, set password (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `POST /staff/customers/{id}/login`, `PUT .../login-status`, `PUT .../password` |
@@ -149,6 +151,13 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   refresh). A second httpOnly cookie, `bank_profile`, holds the name, role, privileges and branch for display. Neither is
   trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting
   an employee or changing a password applies at once. Passwords are exactly 8 digits.
+- **Layout.** Every feature is a button in the left-hand panel (light-blue background, `components/SideNav.tsx`), shown only when signed
+  in; Sign out is a button in the top right corner of the page, just under the top bar; the top bar holds just the brand (with the employee's name and id for staff) and the theme switch. Staff see only the buttons their
+  role's privileges allow (tellers get no "Customer logins" or "UserMgnt"). On a phone the panel becomes a strip of buttons above the page.
+  The sign-in screens put the form in a card at the top right, a little below the header, with a short welcome on the left.
+- **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by
+  `e2e/mobile.spec.ts`, which fails if anything sticks out past the screen edge. On a phone the left panel is a compact wrap of buttons
+  above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
 - **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
   staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
   load and removed when read, so a reload, any navigation or sign-out clears it (`lib/greeting.ts`, `components/Greeting.tsx`). The

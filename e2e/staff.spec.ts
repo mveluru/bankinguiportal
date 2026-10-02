@@ -22,7 +22,7 @@ test("a customer cannot reach the staff portal, and staff land on theirs", async
   await signInCustomer(page);
   await page.goto("/staff/employees");
   await expect(page).not.toHaveURL(/\/staff/);
-  await expect(page.getByRole("heading", { name: "Welcome" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome", exact: true })).toBeVisible();
 });
 
 test("signing out ends the session", async ({ page }) => {
@@ -32,4 +32,39 @@ test("signing out ends the session", async ({ page }) => {
   await expect(page).toHaveURL(/\/staff\/login/);
   await page.goto("/staff");
   await expect(page).toHaveURL(/\/staff\/login/);
+});
+
+// Read-only. A teller has no suspend/reactivate privilege (managers and area managers do), so those pages are not shown.
+test("a teller does not see the suspend or reactivate pages", async ({ page }) => {
+  await page.goto("/staff/login");
+  await page.getByLabel("Username").fill(process.env.E2E_TELLER_USER ?? "lucas.meyer");
+  await page.getByLabel("Password").fill(process.env.E2E_TELLER_PASSWORD ?? "20260010");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+
+  // The left panel only offers what a teller's role allows.
+  const panel = page.getByRole("navigation", { name: "Main" });
+  await expect(panel.getByRole("link", { name: "Open an account" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Customer logins" })).toHaveCount(0);
+  await expect(panel.getByRole("link", { name: "UserMgnt" })).toHaveCount(0);
+
+  await page.goto(`/staff/accounts/${ACCOUNT}`);
+  await expect(page.locator(".balance")).toBeVisible();
+  await expect(page.getByRole("link", { name: /suspen|reactivate/i })).toHaveCount(0);
+
+  for (const tail of ["suspend", "reactivate"]) {
+    await page.goto(`/staff/accounts/${ACCOUNT}/${tail}`);
+    await expect(page).toHaveURL(/\/staff$/);
+  }
+});
+
+test("a manager sees the reactivate page for a suspended account", async ({ page }) => {
+  await signInStaff(page);
+  await page.goto(`/staff/accounts/${ACCOUNT}`);
+  await expect(page.locator(".balance")).toBeVisible();
+  const link = page.getByRole("link", { name: "Reactivate account" });
+  test.skip(!(await link.isVisible()), `${ACCOUNT} is not suspended`);
+  await link.click();
+  await expect(page.getByRole("heading", { name: "Reactivate account" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reactivate account" })).toBeVisible(); // not clicked: read-only
 });

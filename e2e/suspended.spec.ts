@@ -10,11 +10,11 @@ async function reactivate(browser: Browser) {
   const page = await context.newPage();
   try {
     await signInStaff(page);
-    await page.goto(`/staff/accounts/${ACCOUNT}/suspend`);
+    await page.goto(`/staff/accounts/${ACCOUNT}/reactivate`);
     const button = page.getByRole("button", { name: "Reactivate account" });
     if (await button.isVisible({ timeout: 5000 }).catch(() => false)) {
       await button.click();
-      await expect(page.getByText("Account reactivated.")).toBeVisible();
+      await expect(page.getByText(/Account reactivated\./)).toBeVisible();
     }
   } finally {
     await context.close();
@@ -44,9 +44,9 @@ test("staff suspend an account, the customer sees it read-only, staff reactivate
     await expect(page.getByRole("link", { name: /suspen/i })).toHaveCount(0);
 
     await manager.goto(`/staff/accounts/${ACCOUNT}`);
-    await manager.getByRole("link", { name: "Manage suspension" }).click();
+    await manager.getByRole("link", { name: "Reactivate account" }).click();
     await manager.getByRole("button", { name: "Reactivate account" }).click();
-    await expect(manager.getByText("Account reactivated.")).toBeVisible();
+    await expect(manager.getByText(/Account reactivated\./)).toBeVisible();
   } finally {
     await staff.close();
     await reactivate(browser);

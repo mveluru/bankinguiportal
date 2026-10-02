@@ -64,12 +64,23 @@ function Form({ kind }: { kind: PortalKind }) {
 }
 
 export default function SignInForm({ kind }: { kind: PortalKind }) {
+  const staff = kind === "staff";
   return (
-    <>
-      <h1>{kind === "staff" ? "Staff sign in" : "Sign in"}</h1>
-      <Suspense>
-        <Form kind={kind} />
-      </Suspense>
-    </>
+    <div className="login-layout">
+      <div className="login-hero">
+        <h1>{staff ? "Brite Banking Employee" : "Welcome to Brite Banking"}</h1>
+        <p className="muted">
+          {staff
+            ? "Sign in with your employee username and password to manage accounts and logins."
+            : "Sign in to view your accounts, make deposits and withdrawals, and get statements."}
+        </p>
+      </div>
+      <div className="login-card">
+        <h2>{staff ? "Brite Banking Sign In" : "Sign in"}</h2>
+        <Suspense>
+          <Form kind={kind} />
+        </Suspense>
+      </div>
+    </div>
   );
 }
