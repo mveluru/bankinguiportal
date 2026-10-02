@@ -51,12 +51,10 @@ test("welcome headline shows once after sign-in and not after navigating on or r
 });
 
 // Read-only: never presses Generate statement, because the backend also emails/texts the statement.
-test("Statements: pick an account and a date range from the left panel", async ({ page }) => {
+test("Statements: the customer's own account is selected, then pick a date range", async ({ page }) => {
   await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Statements" }).click();
   await expect(page.getByRole("heading", { name: "Statements" })).toBeVisible();
-  await expect(page.getByRole("combobox")).toHaveValue(""); // nothing preselected
-  await expect(page.getByLabel("From", { exact: true })).toHaveCount(0);
-  await page.getByRole("combobox").selectOption(ACCOUNT);
+  await expect(page.getByText(ACCOUNT).first()).toBeVisible(); // nothing to choose with one account: it is already selected
   await expect(page.getByLabel("From", { exact: true })).toBeVisible();
   await expect(page.getByLabel("To", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Generate statement" })).toBeEnabled();
@@ -77,15 +75,38 @@ test("the welcome banner removes itself after 20 seconds", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 });
 
-test("the daily request limit pops up on screen and is explained in Help", async ({ page }) => {
+test("the daily request limit pops up once when exceeded, never inline, and again only after a success", async ({ page }) => {
   const message = "Daily request limit exceeded for customer 1: max 1000 requests per day";
-  await page.route("**/api/portal/home**", (route) => route.fulfill({ status: 429, contentType: "text/plain", body: message }));
-  await page.goto("/");
+  const limited = (route: import("@playwright/test").Route) => route.fulfill({ status: 429, contentType: "text/plain", body: message });
   const dialog = page.getByRole("dialog", { name: "Daily request limit reached" });
+  await page.evaluate(() => sessionStorage.removeItem("dailyLimitShown")); // independent of any real limit hit while signing in
+
+  await page.route("**/api/portal/home**", limited);
+  await page.goto("/");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(message)).toBeVisible();
-  await expect(page.locator("p.error")).toHaveCount(0); // the limit message is in the pop-up only, not on the screen
+  await expect(page.locator("p.error")).toHaveCount(0); // the limit message is in the pop-up only, not red on the screen
+  await dialog.getByRole("button", { name: "OK" }).click();
+
+  // Every request keeps failing while the limit is exceeded, but the pop-up is shown once, not on every load.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: /Dashboard|Welcome/ })).toBeVisible();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("p.error")).toHaveCount(0);
+
+  // A successful request means the limit reset; exceeding it again pops up again.
+  await page.unroute("**/api/portal/home**");
+  await page.route("**/api/portal/home**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ totalActiveAccounts: 0, totalSuspendedAccounts: 0, accounts: [], nearbyLocations: [] }) }),
+  );
+  await page.reload();
+  await expect(page.getByRole("heading", { name: /Your accounts/ })).toBeVisible();
+  await page.unroute("**/api/portal/home**");
+  await page.route("**/api/portal/home**", limited);
+  await page.reload();
+  await expect(dialog).toBeVisible();
+
   await dialog.getByRole("link", { name: "Read more in Help" }).click();
   await expect(page).toHaveURL(/\/help#request-limit$/);
-  await expect(page.getByText("Daily request limit exceeded for customer 1: max 1000 requests per day").first()).toBeVisible();
+  await expect(page.getByText(message).first()).toBeVisible();
 });

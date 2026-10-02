@@ -12,7 +12,7 @@ one-line wrappers, so a change to the component applies to both portals.
 | `globals.css` | All styling (plain CSS, CSS variables for light/dark). |
 | `page.tsx` | Customer home: their accounts plus branches/ATMs with a state filter. |
 | `login/`, `forgot-password/` | Customer sign-in; forgot password (username, three security answers, new 8-digit password). |
-| `statements/` | Customer statements: pick an account, then a date range; print or download CSV. |
+| `statements/` | Customer statements: their own account is selected (a short list if several), then a date range; print or download CSV. |
 | `accounts/[accountNumber]/` | Customer account overview, `deposit`, `withdraw`, `statement`, `close`. Suspended and closed accounts are read-only. |
 | `settings/` | Hub (theme), `password`, `security-questions`. |
 | `staff/login/`, `staff/forgot-password/` | Employee sign-in and password reset. |

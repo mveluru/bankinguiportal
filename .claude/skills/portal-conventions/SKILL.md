@@ -14,6 +14,11 @@ Docs: `../../docs/index.md` (layer docs). Layer rules: see the sibling skills `p
 - **Every screen must be responsive.** It has to fit and stay usable from a 320px Samsung/iPhone up to a wide desktop: fluid widths
   (no fixed widths wider than the screen), text that wraps, touch targets of at least 44px, and wide tables inside `.table-wrap`.
   Check it by adding the route to `e2e/mobile.spec.ts`, which fails on sideways overflow on iPhone and Samsung profiles.
+- **Daily request limit (backend 429, "Daily request limit exceeded for customer N: max 1000 requests per day").** Show it ONLY as the
+  one-time pop-up `RateLimitNotice`, when the limit is first exceeded: not on every request or page load while it stays exceeded
+  (`lib/rate-limit.ts` remembers it per tab until a request succeeds again). NEVER show it as a red inline message on any screen:
+  `ErrorMessage` swaps it for a short grey "This isn't available right now" note (so a screen is never just blank), so always render API errors through `ErrorMessage`, never your own `<p className="error">{message}</p>`.
+  The Help entry `/help#request-limit` explains it.
 - Match the surrounding code: naming, comment density, plain CSS classes from `app/globals.css`.
 - Never write passwords, security answers or tokens to a log, the console, an error message or a response body.
 - Tunables are env vars, documented in `.env.local.brite`. Text that quotes them (`lib/faq.ts`, `lib/legal.ts`)

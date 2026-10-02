@@ -15,7 +15,7 @@ BFF with `Authorization: Bearer`, so scripts in the page never see the token.
 | Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
 | Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
 | Dashboard (the customer home; the same "Go to account number" box and details panel, then your accounts and branches/ATMs with a state filter) | `/` | `GET /portal/home?state=` |
-| Statements: choose an account and a date range, then print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `GET /portal/home`, `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
+| Statements: the customer's own account is selected (a short list of just theirs if they have several), then a date range; print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` (the account list comes from the sign-in, no extra call) |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
 | Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
 | Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
@@ -173,7 +173,7 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   signs the user out and asks them to sign in again.
 - **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
   reset never undoes a lock or suspension an employee set.
-- **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (the Dashboard shows nothing inline about it). Help explains it at `/help#request-limit`.
+- **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (shown once when the limit is first exceeded, not on every request or load, and again only after a request has succeeded in between; no screen shows it as a red message; a screen that could not load shows a short grey "not available right now" note instead of staying blank). Help explains it at `/help#request-limit`.
 - `X-Customer-Id` is the backend gateway's rate-limit key, sent by the route handlers (customer id, employee number, or
   the caller's IP before sign-in). A 429 from the backend reaches the browser as a normal 429 message.
 - The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only

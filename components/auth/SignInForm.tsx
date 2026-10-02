@@ -76,7 +76,7 @@ export default function SignInForm({ kind }: { kind: PortalKind }) {
         </p>
       </div>
       <div className="login-card">
-        <h2>{staff ? "Brite Banking Sign In" : "Sign in"}</h2>
+        <h2>Brite Banking Sign In</h2>
         <Suspense>
           <Form kind={kind} />
         </Suspense>

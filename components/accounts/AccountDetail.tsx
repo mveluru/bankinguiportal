@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
-import { ApiError, accountsApi } from "@/lib/api";
+import { accountsApi } from "@/lib/api";
 import { accountHref, accountLabel, formatMoney, formatSuspendedUntil, titleCase } from "@/lib/format";
 import type { AccountOverviewResponse, PortalKind } from "@/lib/types";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
@@ -37,18 +37,13 @@ export default function AccountDetail({
     accountsApi(kind)
       .getOverview(accountNumber, days)
       .then((d) => !cancelled && (setData(d), setError(null)))
-      .catch((e: Error) => {
-        if (cancelled) return;
-        setData(null);
-        // In the lookup box the daily request limit is left to its pop-up (RateLimitNotice) instead of a red message.
-        setError(embedded && e instanceof ApiError && e.status === 429 ? "" : e.message);
-      });
+      .catch((e: Error) => !cancelled && (setData(null), setError(e.message)));
     return () => {
       cancelled = true;
     };
-  }, [accountNumber, days, kind, embedded]);
+  }, [accountNumber, days, kind]);
 
-  if (error !== null) return error ? <ErrorMessage message={error} /> : null;
+  if (error) return <ErrorMessage message={error} />;
   if (!data) return <Loading />;
 
   return (

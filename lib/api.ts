@@ -1,5 +1,5 @@
 import { readErrorMessage } from "@/lib/http-error";
-import { announceRateLimit } from "@/lib/rate-limit";
+import { announceRateLimit, clearRateLimitNotice } from "@/lib/rate-limit";
 import type {
   AccountOverviewResponse,
   AccountRegistrationRequest,
@@ -45,9 +45,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const message = await readErrorMessage(res);
-    if (res.status === 429) announceRateLimit(message); // the daily request limit: also pops up on screen
+    if (res.status === 429) announceRateLimit(message); // the daily request limit: one pop-up, never inline (see lib/rate-limit.ts)
     throw new ApiError(message, res.status);
   }
+  clearRateLimitNotice(); // a success means the limit has reset
   return res.status === 204 ? (undefined as T) : res.json();
 }
 

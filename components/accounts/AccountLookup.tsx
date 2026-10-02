@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/components/AuthProvider";
 import AccountDetail from "@/components/accounts/AccountDetail";
+import { useOwnAccounts } from "@/components/accounts/useOwnAccounts";
 import type { PortalKind } from "@/lib/types";
 
 /**
@@ -12,8 +12,8 @@ import type { PortalKind } from "@/lib/types";
  * The backend refuses anyone else's account anyway; this keeps the screen from offering it.
  */
 export default function AccountLookup({ kind }: { kind: PortalKind }) {
-  const { user } = useAuth();
-  const own = kind === "customer" ? (user?.accountNumbers ?? []) : [];
+  const ownAccounts = useOwnAccounts(); // a customer's own accounts only (hook is for customers; staff type any number)
+  const own = kind === "customer" ? (ownAccounts ?? []) : [];
   const [entered, setEntered] = useState("");
   const [shown, setShown] = useState<string | null>(null);
   const customer = kind === "customer";
