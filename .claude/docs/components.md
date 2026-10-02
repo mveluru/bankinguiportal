@@ -30,6 +30,8 @@
 
 ### Transaction form layout
 
+Both forms pre-fill the Address subsection with the holder's address from the overview (`HolderFields` `defaultAddress`, editable), and the **staff withdraw** form adds a required checkbox "I verified the customer's address" below it (not on deposit, not for customers; Clear unticks it).
+
 Screens share one set of holder fields, `HolderFields.tsx`: deposit and withdraw (`TransactionForm`, via its `kind` prop, in both portals) and `/staff/accounts/open` (`components/accounts/OpenAccount.tsx`). A change to the
 subsections below therefore applies to all of them. Staff area managers (no home branch) also get a required Branch / ATM id field. Top to bottom:
 

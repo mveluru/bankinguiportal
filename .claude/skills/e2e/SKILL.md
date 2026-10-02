@@ -23,6 +23,8 @@ Docs: `../../docs/testing.md` (demo users, the spec inventory, the daily limit).
   reactivate it before signing the customer in again.
 - Every new screen goes into `e2e/mobile.spec.ts` (customer, staff or signed-out list): it must fit a 320px phone. Stick-out and cut-off checks
   belong in the spec, not in a visual guess.
+- A feature that needs a new backend field is tested with the mocked response (the real shape) plus one live spec that skips itself until the running backend
+  returns it, so the suite stays green on an older backend and proves the real thing on a newer one.
 - Keep one worker (`playwright.config.ts`): the specs share accounts, and `suspended.spec.ts` changes one.
 - After a change: `npx tsc --noEmit`, `npx eslint e2e`, then run the affected specs. Update `.claude/docs/testing.md` when a spec is added or its
   data or behaviour changes.

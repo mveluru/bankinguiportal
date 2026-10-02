@@ -25,6 +25,8 @@ response body, a log or client code, and never touch the banking database direct
 - Irreversible or side-effecting calls only on an explicit user action: close account, and Generate statement (it emails/SMSes a copy).
 - Never log passwords, security answers or tokens. Passwords are exactly 8 digits.
 - Customers can only ever see their own account(s); staff actions depend on the role's privileges.
+- **Staff withdraw rule:** the withdraw form is pre-filled with the customer's address (`holderAddress` from the overview) and, for staff only, has a
+  required checkbox "I verified the customer's address" that must be ticked before it can be submitted. Keep it required; it is withdraw-only.
 - Text that quotes configuration (`lib/faq.ts`, `lib/legal.ts`) must read the same env var as the behaviour. Bump `LAST_UPDATED` in `lib/legal.ts`
   and `NOTICE_VERSION` in `components/CookieNotice.tsx` when their wording or cookie use changes.
 

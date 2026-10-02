@@ -1,5 +1,7 @@
 "use client";
 
+import type { HolderAddress } from "@/lib/types";
+
 const STATES: [string, string][] = [
   ["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"],
   ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"], ["GA", "Georgia"],
@@ -25,7 +27,8 @@ function formatPhone(raw: string) {
  */
 export function clearFormFields(form: HTMLFormElement) {
   for (const el of Array.from(form.elements)) {
-    if (el instanceof HTMLInputElement) el.value = el.name === "country" ? "USA" : "";
+    if (el instanceof HTMLInputElement && el.type === "checkbox") el.checked = false;
+    else if (el instanceof HTMLInputElement) el.value = el.name === "country" ? "USA" : "";
     else if (el instanceof HTMLSelectElement) el.selectedIndex = 0;
   }
 }
@@ -39,10 +42,13 @@ export default function HolderFields({
   defaultFirstName,
   defaultLastName,
   showDob = false,
+  defaultAddress,
 }: {
   defaultFirstName?: string;
   defaultLastName?: string;
   showDob?: boolean;
+  /** The account holder's address on file: fills the Address fields in (still editable). */
+  defaultAddress?: HolderAddress | null;
 }) {
   return (
     <>
@@ -79,26 +85,26 @@ export default function HolderFields({
         <div className="row">
           <label>
             <span>Street<span className="req">*</span></span>
-            <input name="street" required />
+            <input name="street" required defaultValue={defaultAddress?.street} />
           </label>
           <label>
             <span>Address line 1<span className="req">*</span></span>
-            <input name="addressLine1" required maxLength={50} />
+            <input name="addressLine1" required maxLength={50} defaultValue={defaultAddress?.addressLine1} />
           </label>
           <label>
             Address line 2
-            <input name="addressLine2" />
+            <input name="addressLine2" defaultValue={defaultAddress?.addressLine2 ?? undefined} />
           </label>
         </div>
         <div className="row">
           <label>
             <span>City<span className="req">*</span></span>
-            <input name="city" required maxLength={50} />
+            <input name="city" required maxLength={50} defaultValue={defaultAddress?.city} />
           </label>
           <label className="narrow-state">
             <span>State<span className="req">*</span></span>
             {/* The value is the two-letter code the backend requires; the list scrolls inside the dropdown. */}
-            <select name="state" required defaultValue="">
+            <select name="state" required defaultValue={defaultAddress?.state ?? ""}>
               <option value="" disabled>Select</option>
               {STATES.map(([code, name]) => (
                 <option key={code} value={code}>{code} – {name}</option>
@@ -112,6 +118,7 @@ export default function HolderFields({
               required
               pattern="\d{5}"
               maxLength={5}
+              defaultValue={defaultAddress?.zip}
               inputMode="numeric"
               autoComplete="postal-code"
               onInput={(e) => {
@@ -121,7 +128,7 @@ export default function HolderFields({
           </label>
           <label>
             <span>Country<span className="req">*</span></span>
-            <input name="country" required maxLength={50} defaultValue="USA" autoComplete="country-name" />
+            <input name="country" required maxLength={50} defaultValue={defaultAddress?.country || "USA"} autoComplete="country-name" />
           </label>
         </div>
       </fieldset>

@@ -22,7 +22,7 @@ account cannot sign in. Against an older backend the extra screens degrade quiet
 | Dashboard (the customer home). "Go to account number" is filled in with the customer's own account id and read-only (a short list if they have several); View shows the account in a big square box on the right, scrollable both ways. Below: their accounts, and branches/ATMs with a state filter | `/` | `GET /portal/home?state=`, and for View `GET /portal/accounts/{n}/overview` |
 | Statements: the customer's own account is selected (a short list of just theirs if they have several), then a date range; print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` (the account list comes from the sign-in, no extra call) |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
-| Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
+| Deposit / Withdraw (the Address fields are pre-filled with the customer's address on file, still editable) | `/accounts/[accountNumber]/deposit`, `/withdraw` | `GET /portal/accounts/{n}/overview` (holder address), `POST /portal/accounts/deposit`, `/withdraw` |
 | Statement (date range; backend also emails/SMSes it) | `/accounts/[accountNumber]/statement` | `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
 | Close account (typed confirmation plus Yes/No dialog, irreversible) | `/accounts/[accountNumber]/close` | `POST /portal/accounts/{n}/close` |
 | Settings: appearance (system/light/dark), links to password and security questions | `/settings` | none |
@@ -39,7 +39,7 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 | Forgot password | `/staff/forgot-password` | `POST /staff/password-reset/questions`, `POST /staff/password-reset` |
 | "Brite Dashboard" (centred title, welcome banner beneath it, "Go to account number": a blank box for up to 16 characters; View opens the account's details in a big square box on the right of the same screen, scrollable both ways). The employee's role (Area Manager / Manager / Teller) is above the Dashboard button in the left panel; clicking it lists what the role allows. A branch, if the employee has one, is shown under the brand in the top bar | `/staff` | none (from the sign-in response) |
 | Account overview for any account (VIEW_ACCOUNT) | `/staff/accounts/[accountNumber]` | `GET /staff/accounts/{n}/overview?days=` |
-| Deposit / Withdraw (DEPOSIT / WITHDRAW; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
+| Deposit / Withdraw (DEPOSIT / WITHDRAW; Address pre-filled from the customer's record; **withdraw needs the required "I verified the customer's address" checkbox**; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
 | Suspend an account, or change a suspension's end/notes (SUSPEND_ACCOUNT, UPDATE_SUSPENSION; managers and area managers only, others are redirected to the dashboard) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension` |
 | Reactivate a suspended account (REACTIVATE_ACCOUNT; managers and area managers only) | `/staff/accounts/[accountNumber]/reactivate` | `POST .../reactivate` |
 | Close account (CLOSE_ACCOUNT, irreversible) | `/staff/accounts/[accountNumber]/close` | `POST /staff/accounts/{n}/close` |
@@ -203,7 +203,12 @@ or spec, update the README, the matching doc and skill, and `CLAUDE.md` in the s
 - The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only strictly necessary
   cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server components in `lib/legal.ts`, with a visible
   "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED` whenever the wording changes. Help & FAQ (`/help`) is public and renders
-  per request. Withdraw and deposit validate the holder's name and address in the backend but do not use them, so the forms collect them.
+  per request.
+- **Holder address on withdraw and deposit.** The account overview now carries the holder's address (`holderAddress`, from the backend), and the
+  withdraw/deposit form's Address fields are pre-filled with it for customers and staff (still editable; against an older backend without the field
+  they simply start empty). **Staff rule:** on the withdraw screen an employee must tick the required checkbox "I verified the customer's address"
+  before the form can be submitted (a browser-level required field; Clear unticks it). It is a screen rule only: the backend's withdraw request has no
+  field for it. Deposit is pre-filled but has no checkbox. Withdraw and deposit validate the holder's name and address in the backend but do not use them, so the forms collect them.
 
 **The daily request limit and the login count**
 - **Daily request limit.** The backend counts each signed-in customer's requests against their token (not the `X-Customer-Id` header) in

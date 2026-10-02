@@ -45,6 +45,17 @@ export interface PortalActivityItem {
   depositType: string | null;
 }
 
+/** The account holder's address on file (from the overview), used to pre-fill the holder fields of a withdraw or deposit. */
+export interface HolderAddress {
+  street: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string;
+  zip: string;
+  country: string | null;
+}
+
 export interface AccountOverviewResponse {
   accountNumber: string;
   accountType: AccountType;
@@ -57,6 +68,7 @@ export interface AccountOverviewResponse {
   firstName: string;
   lastName: string;
   maskedPhoneNumber: string | null; // ***-***-0101; null if none on file
+  holderAddress?: HolderAddress | null; // absent on an older backend; null if no address is on file
   activityDays: number;
   recentActivity: PortalActivityItem[];
 }

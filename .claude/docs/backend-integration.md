@@ -66,6 +66,7 @@ Account numbers are always passed through `encodeURIComponent`.
 
 - Shapes live in `lib/types.ts`, mirroring the backend DTOs (`org.brite.banking.bff.dto`, `domain`, `request`). Change it only when the backend changes.
 - Withdraw, deposit and close return the refreshed `AccountOverviewResponse`; `lib/api.ts` reduces withdraw/deposit to `AccountResult`.
+- The overview carries `holderAddress` (street, address lines, city, state, ZIP, country; null if none, absent on an older backend): the withdraw/deposit form pre-fills its Address fields with it. The backend only ever returns it to the owning customer or an employee with VIEW_ACCOUNT. The staff "verified the customer's address" checkbox is a portal screen rule, not sent to the backend.
 - The holder form fields Middle and Country are **not** part of any request body. Phone is sent as `phoneNumber` by `openAccount` only.
 - Account status is `ACTIVE | SUSPENDED | CLOSED | INACTIVE | DORMANT`. Only ACTIVE accounts can transact (others are refused with a 400, and the UI hides the actions and explains why), and a customer with no ACTIVE account cannot sign in: the backend answers 403 "Sign-in is not available: your account status is <STATUS>. Please contact the customer support service." and the sign-in form shows it as is. INACTIVE and DORMANT are set by hand on the backend for now.
 - Errors become a message via `readErrorMessage` (`lib/http-error.ts`) and are thrown as `ApiError` (with `status`): bean-validation JSON

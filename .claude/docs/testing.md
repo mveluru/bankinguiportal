@@ -27,6 +27,7 @@ specs need `CH-0000088291` to be active.
 | `staff.spec.ts` | Staff sign-in, role button and permissions, lookup, employees list, teller restrictions, reactivate page, customer and employee rate-limit panels (PUT mocked), sign-out |
 | `login-count.spec.ts` | "Logins today: N" beside Sign out (mocked and live, once per page load, 320px layout), Sign out styled like Dark, blocked-sign-in message |
 | `blocked-login.spec.ts` | SUSPENDED, CLOSED, INACTIVE and DORMANT sign-ins show the backend's message and start no session; one real-backend check |
+| `withdraw-address.spec.ts` | The withdraw (and deposit) form is pre-filled with the holder's address; staff must tick the required "I verified the customer's address" box to withdraw (withdraw only; Clear unticks it); the overview and POST are mocked, and one live check skips itself until the backend returns `holderAddress` |
 | `close-dialog.spec.ts` | Close account asks Yes/No; only No is clicked, so nothing is closed |
 | `idle.spec.ts` | Idle sign-out after 2 minutes (fake clock) and activity keeping the session alive |
 | `suspended.spec.ts` | **Changes data:** staff suspend `CH-0000088291`, the customer is refused sign-in, staff reactivate, the customer signs in again; the cleanup reactivates through the API even if a step fails; skips itself unless the account is active |
