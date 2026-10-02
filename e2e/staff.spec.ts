@@ -5,14 +5,18 @@ import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
 test("staff sign in, see their role, look up an account and list employees", async ({ page }) => {
   await signInStaff(page);
   await expect(page.getByRole("status").filter({ hasText: /^Welcome Priya Raman EMP-000001$/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Brite Banking Dashboard" })).toBeVisible();
-  await expect(page.locator(".side-role")).toHaveText("Area Manager"); // the role sits above the Dashboard button
+  await expect(page.getByRole("heading", { name: "Brite Dashboard" })).toBeVisible();
+  // The role sits above the Dashboard button; clicking it shows what the role allows. None of that is on the dashboard itself.
+  await expect(page.locator(".side-role")).toContainText("Area Manager");
+  await expect(page.getByText("Manage Employees")).toHaveCount(0);
+  await page.locator(".side-role").click();
+  await expect(page.getByRole("list", { name: "What your role allows" }).getByText("Manage Employees")).toBeVisible();
+  await expect(page.locator(".brand-sub")).toHaveCount(0); // area managers have no branch
   await expect(page.getByRole("link", { name: "UserMgnt" })).toBeVisible();
 
   await page.getByLabel("Go to account number").fill(ACCOUNT);
   await page.getByRole("button", { name: "View" }).click();
-  await expect(page).toHaveURL(new RegExp(`/staff/accounts/${ACCOUNT}$`));
-  await expect(page.locator(".balance")).toHaveText(/\$[\d,]+\.\d{2}/);
+  await expect(page.locator(".account-box .balance")).toHaveText(/\$[\d,]+\.\d{2}/); // opens in the box, same screen
 
   await page.getByRole("link", { name: "UserMgnt" }).click();
   await expect(page.getByRole("heading", { name: "Employees" })).toBeVisible();
@@ -42,6 +46,8 @@ test("a teller does not see the suspend or reactivate pages", async ({ page }) =
   await page.getByLabel("Password").fill(process.env.E2E_TELLER_PASSWORD ?? "20260010");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+
+  await expect(page.locator(".brand-sub")).toBeVisible(); // a teller's branch is shown under the brand
 
   // The left panel only offers what a teller's role allows.
   const panel = page.getByRole("navigation", { name: "Main" });

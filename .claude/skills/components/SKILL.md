@@ -8,6 +8,9 @@ description: Rules for shared React components in components/ plus per-component
 **Job:** reusable UI shared by pages or the root layout.
 
 Rules:
+- Responsive by default: no fixed widths wider than a 320px screen, text wraps, 44px touch targets. A new component is not done until the screens that use it pass `e2e/mobile.spec.ts`.
+- Responsive by default: no fixed widths wider than a 320px screen, text wraps, 44px touch targets. A component is not done until the
+  screens that use it pass `e2e/mobile.spec.ts` (iPhone and Samsung profiles).
 - Default export, one component per file, props typed inline or with a local interface.
 - Mark `"use client"` only if it uses state, effects, or browser APIs. Leave presentational ones as server components.
 - No `node:` imports and no direct file or backend access; get data through props, `useAuth`, or `lib/api.ts` (never `fetch` the backend directly).

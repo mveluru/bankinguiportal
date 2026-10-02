@@ -14,4 +14,4 @@ description: Rules for proxy.ts, next.config.ts, env vars, layout.tsx and global
   `BANKING_BACKEND_URL`, `BFF_PORTAL_PATH`, `BFF_STAFF_PATH` are server-side, read at start. `NEXT_PUBLIC_*` are baked in at build.
 - **`app/layout.tsx`:** wraps the app in `AuthProvider` and renders `NavBar`, `SessionTimeout`, `IdleLogout`, `CookieNotice`
   and the footer, plus the pre-paint theme script. Keep it free of page-specific logic.
-- **`app/globals.css`:** all styling, with CSS variables for light and dark. Reuse existing classes first.
+- **`app/globals.css`:** all styling, with CSS variables for light and dark. Reuse existing classes first. Everything must stay responsive: use fluid widths, put phone rules in the `@media (max-width: 640px)` block, and never add a fixed width that exceeds a 320px screen.

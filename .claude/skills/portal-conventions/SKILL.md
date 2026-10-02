@@ -11,6 +11,9 @@ Docs: `../../docs/index.md` (layer docs). Layer rules: see the sibling skills `p
 
 
 - Import with the `@/` alias (`@/lib/session`, `@/components/NavBar`), not long relative paths.
+- **Every screen must be responsive.** It has to fit and stay usable from a 320px Samsung/iPhone up to a wide desktop: fluid widths
+  (no fixed widths wider than the screen), text that wraps, touch targets of at least 44px, and wide tables inside `.table-wrap`.
+  Check it by adding the route to `e2e/mobile.spec.ts`, which fails on sideways overflow on iPhone and Samsung profiles.
 - Match the surrounding code: naming, comment density, plain CSS classes from `app/globals.css`.
 - Never write passwords, security answers or tokens to a log, the console, an error message or a response body.
 - Tunables are env vars, documented in `.env.local.brite`. Text that quotes them (`lib/faq.ts`, `lib/legal.ts`)

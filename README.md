@@ -14,7 +14,7 @@ BFF with `Authorization: Bearer`, so scripts in the page never see the token.
 |---|---|---|
 | Sign in | `/login` | `POST /portal/login` (via `/api/auth/login`) |
 | Forgot password (username, three security answers, new password) | `/forgot-password` | `POST /portal/password-reset/questions`, `POST /portal/password-reset` |
-| Home (accounts + branches/ATMs, state filter) | `/` | `GET /portal/home?state=` |
+| Home (the same "Go to account number" box and details panel, then your accounts and branches/ATMs with a state filter) | `/` | `GET /portal/home?state=` |
 | Statements: choose an account and a date range, then print it or download it as CSV (backend also emails/SMSes it) | `/statements` | `GET /portal/home`, `POST /portal/accounts/{n}/statement?beginDate=&endDate=` |
 | Account overview (balance + activity) | `/accounts/[accountNumber]` | `GET /portal/accounts/{n}/overview?days=` |
 | Deposit / Withdraw | `/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /portal/accounts/deposit`, `/withdraw` |
@@ -32,7 +32,7 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 |---|---|---|
 | Staff sign in | `/staff/login` | `POST /staff/login` (via `/api/auth/login`) |
 | Forgot password | `/staff/forgot-password` | `POST /staff/password-reset/questions`, `POST /staff/password-reset` |
-| "Brite Banking Dashboard" (centred title): your role, privileges, branch, account lookup; the role (Area Manager / Manager / Teller) is also shown above the Dashboard button in the left panel | `/staff` | none (from the sign-in response) |
+| "Brite Dashboard" (centred title, welcome banner beneath it, "Go to account number": a blank box for up to 16 characters; View opens the account's details in a big square box on the right of the same screen, scrollable both ways). The employee's role (Area Manager / Manager / Teller) is above the Dashboard button in the left panel; clicking it lists what the role allows. A branch, if the employee has one, is shown under the brand in the top bar | `/staff` | none (from the sign-in response) |
 | Account overview for any account (VIEW_ACCOUNT) | `/staff/accounts/[accountNumber]` | `GET /staff/accounts/{n}/overview?days=` |
 | Deposit / Withdraw (DEPOSIT / WITHDRAW; area managers name a branch id) | `/staff/accounts/[accountNumber]/deposit`, `/withdraw` | `POST /staff/accounts/deposit`, `/withdraw` (`?locationId=`) |
 | Suspend an account, or change a suspension's end/notes (SUSPEND_ACCOUNT, UPDATE_SUSPENSION; managers and area managers only, others are redirected to the dashboard) | `/staff/accounts/[accountNumber]/suspend` | `POST .../suspend`, `PATCH .../suspension` |
@@ -152,7 +152,7 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   trusted for access: the backend re-checks the token and the login status on every call, so suspending a login, demoting
   an employee or changing a password applies at once. Passwords are exactly 8 digits.
 - **Layout.** Every feature is a button in the left-hand panel (light-blue background, `components/SideNav.tsx`), shown only when signed
-  in; Sign out is a button in the top right corner of the page, just under the top bar; the top bar holds just the brand (with the employee's name and id for staff) and the theme switch. Staff see only the buttons their
+  in; Sign out is a button in the top bar, just left of the Dark/Light switch; the top bar holds the brand (with the employee's name and id for staff) and the theme switch. Staff see only the buttons their
   role's privileges allow (tellers get no "Customer logins" or "UserMgnt"). On a phone the panel becomes a strip of buttons above the page.
   The sign-in screens put the form in a card at the top right, a little below the header, with a short welcome on the left.
 - **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by

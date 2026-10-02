@@ -16,8 +16,7 @@ export default function StatementsPage() {
   useEffect(() => {
     getHome()
       .then((h) => {
-        setAccounts(h.accounts);
-        setAccount(h.accounts[0]?.accountNumber ?? "");
+        setAccounts(h.accounts); // no account is preselected: the customer picks one
       })
       .catch((e: Error) => setError(e.message));
   }, []);
@@ -33,6 +32,7 @@ export default function StatementsPage() {
           <label className="no-print" style={{ maxWidth: 420 }}>
             Account
             <select value={account} onChange={(e) => setAccount(e.target.value)}>
+              <option value="" disabled>Select an account</option>
               {accounts.map((a) => (
                 <option key={a.accountNumber} value={a.accountNumber}>
                   {accountLabel(a.accountType)} · {a.accountNumber}

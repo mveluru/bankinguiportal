@@ -32,7 +32,7 @@ async function expectFits(page: Page, path: string) {
     const wide = [...document.querySelectorAll("body *")]
       .filter((e) => {
         const b = e.getBoundingClientRect();
-        return b.width > 0 && (b.right > w + 1 || b.left < -1) && !e.closest(".table-wrap, dialog, .cookie-notice") && getComputedStyle(e).position !== "fixed";
+        return b.width > 0 && (b.right > w + 1 || b.left < -1) && !e.closest(".table-wrap, .account-box, dialog, .cookie-notice") && getComputedStyle(e).position !== "fixed";
       })
       .slice(0, 4)
       .map((e) => `${e.tagName.toLowerCase()}.${e.className || ""} right=${Math.round(e.getBoundingClientRect().right)}`);

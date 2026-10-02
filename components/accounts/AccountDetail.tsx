@@ -13,8 +13,18 @@ import { ErrorMessage, Loading } from "@/components/StateBlock";
  * One account: balance, status and recent activity. Customers see their own accounts and can deposit, withdraw, close and
  * get statements. Staff see any account and get the actions their role allows; suspending and reactivating are staff-only.
  */
-export default function AccountDetail({ kind }: { kind: PortalKind }) {
-  const { accountNumber } = useParams<{ accountNumber: string }>();
+export default function AccountDetail({
+  kind,
+  accountNumber: given,
+  embedded = false,
+}: {
+  kind: PortalKind;
+  /** Given when the screen is not a route of its own (the lookup box on the home screens); else it comes from the URL. */
+  accountNumber?: string;
+  embedded?: boolean;
+}) {
+  const params = useParams<{ accountNumber?: string }>();
+  const accountNumber = given ?? params.accountNumber ?? "";
   const { user } = useAuth();
   const staff = kind === "staff";
   const allowed = (privilege: Parameters<typeof can>[1]) => !staff || can(user, privilege);
@@ -38,9 +48,14 @@ export default function AccountDetail({ kind }: { kind: PortalKind }) {
 
   return (
     <>
-      <h1>
-        {accountLabel(data.accountType)} <span className="badge">{titleCase(data.accountStatus)}</span>
-      </h1>
+      {(() => {
+        const Title = embedded ? "h2" : "h1";
+        return (
+          <Title style={embedded ? { marginTop: 0 } : undefined}>
+            {accountLabel(data.accountType)} <span className="badge">{titleCase(data.accountStatus)}</span>
+          </Title>
+        );
+      })()}
       <p className="muted">
         {data.accountNumber} · {data.firstName} {data.lastName} · opened {data.createdDate}
         {data.closedDate && ` · closed ${data.closedDate}`}

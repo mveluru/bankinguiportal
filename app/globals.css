@@ -18,13 +18,12 @@ main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .shell main { min-width:0; }
 .sidebar { flex:0 0 220px; background:var(--side-bg); border-right:1px solid var(--line); padding:16px 12px; }
 .sidebar nav { display:grid; gap:8px; position:sticky; top:16px; }
-.side-role { margin:0 0 10px; padding:6px 4px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--side-fg); }
+.side-role-box { margin-bottom:10px; }
+.side-role { display:block; width:100%; margin:0; padding:6px 4px; background:none; border:0; border-radius:6px; font-size:.8rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; text-align:left; color:var(--side-fg); cursor:pointer; }
+.side-role:hover { background:var(--side-hover); }
+.side-privs { list-style:none; margin:6px 0 0; padding:8px 10px; border-radius:8px; background:var(--card); font-size:.85rem; display:grid; gap:4px; }
 .center { text-align:center; }
 .side-btn { display:flex; align-items:center; width:100%; min-height:44px; padding:10px 14px; border:1px solid transparent; border-radius:8px; background:var(--card); color:var(--side-fg); font-weight:600; text-align:left; cursor:pointer; }
-/* Sign out: top right corner of the page, just under the top bar. */
-.signout-corner { position:absolute; top:12px; right:24px; z-index:5; }
-/* Keep page content clear of the Sign out button in the corner. */
-.sidebar ~ main { padding-top:64px; }
 .side-btn:hover { background:var(--side-hover); text-decoration:none; }
 .side-btn[aria-current="page"] { background:var(--brand); color:#fff; }
 /* Sign-in screens: the form is a card on the right, a little below the header, like a bank's sign-in page. */
@@ -34,7 +33,9 @@ main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .login-hero h1 { font-size:2rem; }
 .login-card { margin-top:8px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:24px; box-shadow:0 4px 16px rgba(0,0,0,.08); }
 .login-card h2 { margin:0 0 16px; color:var(--brand); }
+.brand-block { display:flex; flex-direction:column; line-height:1.25; }
 .brand { font-weight:700; font-size:1.2rem; }
+.brand-sub { font-size:.85rem; color:var(--muted); }
 h1 { margin-top:0; } h2 { margin-top:32px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px; }
@@ -145,7 +146,8 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
 /* Phones: hamburger menu, tighter spacing, full-width primary buttons, stacked table cards. */
 @media (max-width: 640px) {
   .topbar { gap:8px 12px; padding:8px 16px; }
-  .brand { order:1; flex:1 1 0; min-width:0; font-size:1.05rem; overflow-wrap:anywhere; }
+  .brand-block { order:1; flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
+  .brand { font-size:1.05rem; }
   .topbar-actions { order:2; }
   main { padding:16px; }
   /* The left panel becomes a strip of buttons above the page. */
@@ -154,10 +156,8 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
   /* Compact chips that wrap, Sign out in the same flow, so the menu doesn't fill the first screen. */
   .sidebar { display:flex; flex-wrap:wrap; gap:8px; padding:10px 16px; }
   .sidebar nav { display:flex; flex-wrap:wrap; gap:8px; position:static; flex:1 1 auto; }
-  .side-role { flex:1 0 100%; margin:0; padding:0 2px; }
+  .side-role-box { flex:1 0 100%; margin:0; }
   .side-btn { width:auto; flex:1 1 auto; justify-content:center; padding:8px 12px; }
-  .signout-corner { position:static; flex:0 0 auto; }
-  .sidebar ~ main { padding-top:16px; }
   .login-layout { grid-template-columns:1fr; gap:0; width:auto; left:0; transform:none; padding-right:0; }
   .login-hero { padding-top:0; }
   .login-card { margin-top:16px; }
@@ -203,3 +203,21 @@ form.stack > *, fieldset { min-width:0; }
 fieldset.stack { display:grid; gap:12px; }
 fieldset.stack label, fieldset.stack select, fieldset.stack input { min-width:0; width:100%; }
 form.stack label, form.stack select, form.stack input, form.stack textarea { max-width:100%; }
+
+/* "Go to account number": the row sits at the left edge of the page area, next to the left panel, instead of inside the centred
+   960px column. The box grows and shrinks with the window; on a phone it is simply full width. */
+/* Sized for an account number: 16 characters (the input also stops at 16). */
+.lookup label { flex:0 1 auto; }
+.lookup input { width:calc(16ch + 24px); max-width:100%; }
+@media (min-width: 641px) {
+  .sidebar ~ main .lookup-layout { margin-left:calc(-1 * max(0px, (100vw - 1180px) / 2)); }
+}
+
+/* Lookup: the form on the left, the account details in a big square box on the right (scrolls both ways). */
+.lookup-layout { display:grid; grid-template-columns:auto minmax(0,1fr); gap:24px; align-items:start; }
+.account-box { justify-self:end; width:min(100%, 560px); aspect-ratio:1 / 1; overflow:auto; padding:16px; background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.account-box > * { min-width:420px; } /* wide enough to need the horizontal scroll on small boxes, never squashed */
+@media (max-width: 900px) {
+  .lookup-layout { grid-template-columns:minmax(0,1fr); }
+  .account-box { justify-self:stretch; width:100%; aspect-ratio:auto; height:70vh; max-height:560px; }
+}

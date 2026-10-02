@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
 import { titleCase } from "@/lib/format";
 
@@ -15,13 +15,12 @@ interface Item {
 
 /**
  * The left-hand panel: every feature as a button on a light-blue background, shown only to signed-in users. Staff get
- * only the features their role's privileges allow (a convenience: the backend refuses the calls anyway). Sign out sits in the top right corner and asks first.
+ * only the features their role's privileges allow (a convenience: the backend refuses the calls anyway). Sign out is in the top bar.
  */
 export default function SideNav() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const pathname = usePathname();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const [signingOut, setSigningOut] = useState(false);
+  const [rolesOpen, setRolesOpen] = useState(false);
 
   if (!user) return null;
 
@@ -47,20 +46,23 @@ export default function SideNav() {
   const active = (i: Item) =>
     exact ? exact === i : pathname === i.href || !!i.also?.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  async function confirmSignOut() {
-    setSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      setSigningOut(false);
-      dialog.current?.close();
-    }
-  }
-
   return (
     <aside className="sidebar">
-      {/* Staff: the employee's role (Area Manager, Manager, Teller) above the Dashboard button. */}
-      {staff && user.role && <p className="side-role">{titleCase(user.role)}</p>}
+      {/* Staff: the employee's role above the Dashboard button; clicking it shows what the role allows. */}
+      {staff && user.role && (
+        <div className="side-role-box">
+          <button type="button" className="side-role" aria-expanded={rolesOpen} aria-controls="role-privileges" onClick={() => setRolesOpen((o) => !o)}>
+            {titleCase(user.role)} <span aria-hidden="true">{rolesOpen ? "▴" : "▾"}</span>
+          </button>
+          {rolesOpen && (
+            <ul id="role-privileges" className="side-privs" aria-label="What your role allows">
+              {user.privileges?.map((p) => (
+                <li key={p}>{titleCase(p)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <nav aria-label="Main">
         {items.map((i) => (
           <Link key={i.href} href={i.href} className="side-btn" aria-current={active(i) ? "page" : undefined}>
@@ -68,22 +70,6 @@ export default function SideNav() {
           </Link>
         ))}
       </nav>
-      {/* Top right corner of the page, just under the top bar (see .signout-corner). */}
-      <button type="button" className="signout-corner" onClick={() => dialog.current?.showModal()}>
-        Sign out
-      </button>
-      <dialog ref={dialog} className="confirm" aria-labelledby="signout-title">
-        <h2 id="signout-title" style={{ marginTop: 0 }}>Sign out?</h2>
-        <p className="muted">You will need to sign in again to {staff ? "continue" : "view your accounts"}.</p>
-        <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button type="button" className="secondary" onClick={() => dialog.current?.close()} disabled={signingOut}>
-            Cancel
-          </button>
-          <button type="button" onClick={confirmSignOut} disabled={signingOut}>
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
-        </div>
-      </dialog>
     </aside>
   );
 }

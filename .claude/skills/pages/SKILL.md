@@ -15,6 +15,7 @@ Rules:
   is one shared component taking `kind`, and each `page.tsx` is a one-line wrapper. Do not copy it.
 - Public pages must be listed in `PUBLIC_PAGES` in `proxy.ts`, or signed-out visitors are redirected to a sign-in page.
 - Hide what a staff role cannot do with `can(user, privilege)`, but never rely on it: the backend enforces privileges.
+- Every page must be responsive (a 320px phone up to a wide desktop; see portal-conventions). Add new routes to `e2e/mobile.spec.ts`.
 - Show loading and errors with `StateBlock` (`Loading`, `ErrorMessage`), not ad-hoc markup.
 - A new page needs a nav or settings link and a row in the matching README screen table.
 - Dynamic segments use `[accountNumber]` / `[employeeNumber]`; read them with `useParams` (client) or `params` (server).

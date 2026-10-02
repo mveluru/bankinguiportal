@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getHome } from "@/lib/api";
 import { accountLabel, formatSuspendedUntil } from "@/lib/format";
 import type { PortalHomeResponse } from "@/lib/types";
+import AccountLookup from "@/components/accounts/AccountLookup";
 import Greeting from "@/components/Greeting";
 import LocationCard from "@/components/LocationCard";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
 
 export default function HomePage() {
-  const router = useRouter();
   const [state, setState] = useState("");
   const [data, setData] = useState<PortalHomeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lookup, setLookup] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -31,19 +29,7 @@ export default function HomePage() {
     <>
       <Greeting />
       <h1>Welcome</h1>
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (lookup.trim()) router.push(`/accounts/${encodeURIComponent(lookup.trim())}`);
-        }}
-      >
-        <label>
-          Go to account number
-          <input value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="CH-0000088291" />
-        </label>
-        <button type="submit">View</button>
-      </form>
+      <AccountLookup kind="customer" />
 
       {error && <ErrorMessage message={error} />}
       {!data && !error && <Loading />}
