@@ -1,27 +1,22 @@
 import { expect, test, type Browser } from "@playwright/test";
-import { ACCOUNT, signInCustomer, signInStaff } from "./helpers";
+import { ACCOUNT, CUSTOMER, STAFF, signInCustomer, signInStaff } from "./helpers";
 
-// Changes data: a staff manager suspends ACCOUNT, then reactivates it (also in cleanup). Needs an ACTIVE account, so it
+// Changes data: a staff manager suspends ACCOUNT, then reactivates it (the cleanup reactivates through the API even if a step fails). Needs an ACTIVE account, so it
 // skips itself when ACCOUNT is already suspended or closed rather than guessing what state to restore.
 // Customers can't suspend or reactivate; only staff can.
 
+/** Cleanup that cannot be skipped by a slow page: staff sign in and reactivate through the API (a no-op if the account is not suspended). */
 async function reactivate(browser: Browser) {
   const context = await browser.newContext();
-  const page = await context.newPage();
   try {
-    await signInStaff(page);
-    await page.goto(`/staff/accounts/${ACCOUNT}/reactivate`);
-    const button = page.getByRole("button", { name: "Reactivate account" });
-    if (await button.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await button.click();
-      await expect(page.getByText(/Account reactivated\./)).toBeVisible();
-    }
+    const login = await context.request.post("/api/auth/login", { data: { kind: "staff", username: STAFF.user, password: STAFF.password } });
+    if (login.ok()) await context.request.post(`/api/staff/accounts/${ACCOUNT}/reactivate`, { headers: { "Content-Type": "application/json" } });
   } finally {
     await context.close();
   }
 }
 
-test("staff suspend an account, the customer sees it read-only, staff reactivate it", async ({ page, browser }) => {
+test("staff suspend an account, the customer cannot sign in until staff reactivate it", async ({ page, browser }) => {
   const staff = await browser.newContext();
   const manager = await staff.newPage();
   await signInStaff(manager);
@@ -35,18 +30,23 @@ test("staff suspend an account, the customer sees it read-only, staff reactivate
     await manager.getByRole("button", { name: "Suspend account" }).click();
     await expect(manager.getByText("Account suspended.")).toBeVisible();
 
-    // The customer: read-only account page, no deposit/withdraw, and nowhere to lift the suspension.
-    await signInCustomer(page);
-    await page.goto(`/accounts/${ACCOUNT}`);
-    await expect(page.getByText(/read-only/).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Deposit" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Withdraw" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /suspen/i })).toHaveCount(0);
+    // The backend refuses sign-in for a customer none of whose accounts is ACTIVE, and the sign-in screen shows its message.
+    await page.goto("/login");
+    await page.getByLabel("Username").fill(CUSTOMER.user);
+    await page.getByLabel("Password").fill(CUSTOMER.password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: /Sign-in is not available: your account status is SUSPENDED/ })).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
 
     await manager.goto(`/staff/accounts/${ACCOUNT}`);
     await manager.getByRole("link", { name: "Reactivate account" }).click();
     await manager.getByRole("button", { name: "Reactivate account" }).click();
     await expect(manager.getByText(/Account reactivated\./)).toBeVisible();
+
+    // Reactivated: the customer can sign in again and sees an active account with its actions.
+    await signInCustomer(page);
+    await page.goto(`/accounts/${ACCOUNT}`);
+    await expect(page.getByRole("link", { name: "Deposit" })).toBeVisible();
   } finally {
     await staff.close();
     await reactivate(browser);

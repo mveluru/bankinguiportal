@@ -1,6 +1,7 @@
 // Mirrors the BFF DTOs in bankingservices (org.bee.banking.bff.dto).
 export type AccountType = "CHECKING" | "SAVINGS" | "INVESTMENT" | "RETIREMENT" | "CREDIT_OR_LOAN";
-export type AccountStatus = "ACTIVE" | "SUSPENDED" | "CLOSED";
+// INACTIVE and DORMANT are set by hand on the backend for now: no transactions, and a holder with no ACTIVE account cannot sign in.
+export type AccountStatus = "ACTIVE" | "SUSPENDED" | "CLOSED" | "INACTIVE" | "DORMANT";
 
 export interface PortalAccountSummary {
   accountNumber: string;
@@ -168,16 +169,25 @@ export interface PortalEmployee {
   privileges: EmployeePrivilege[];
 }
 
-/** A customer's daily request limit and today's usage (GET/PUT /staff/customers/{id}/rate-limit). */
-export interface CustomerRateLimitView {
-  customerId: number;
+/** A daily request limit and today's usage: the same shape for a customer and for an employee. */
+export interface RateLimitView {
   dailyLimit: number; // the limit that applies today
-  customLimit: number | null; // the customer's own limit; null = on the default
+  customLimit: number | null; // their own limit; null = on the default
   defaultLimit: number;
   usageDate: string;
-  requestsToday: number; // counted against the customer's token
+  requestsToday: number; // counted against their token
   remainingToday: number;
   loginsToday: number; // successful sign-ins today
+}
+
+/** GET/PUT /staff/customers/{id}/rate-limit */
+export interface CustomerRateLimitView extends RateLimitView {
+  customerId: number;
+}
+
+/** GET/PUT /staff/employees/{employeeNumber}/rate-limit */
+export interface EmployeeRateLimitView extends RateLimitView {
+  employeeNumber: string;
 }
 
 /** Spring Data page, as returned by GET /staff/employees. */

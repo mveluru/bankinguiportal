@@ -98,6 +98,8 @@ export default function TransactionForm({ kind, portal = "customer" }: { kind: "
             ? "This account is closed and cannot be used for transactions."
             : account.accountStatus === "SUSPENDED"
             ? `This account is suspended ${formatSuspendedUntil(account.suspendedUntil)} and cannot be used for transactions until it is reactivated.`
+            : account.accountStatus === "INACTIVE" || account.accountStatus === "DORMANT"
+            ? `This account is ${account.accountStatus.toLowerCase()} and cannot be used for transactions. Please contact customer support.`
             : `${accountLabel(account.accountType)} accounts don't support ${kind}s.`}
         </p>
       </>

@@ -19,6 +19,6 @@ one-line wrappers, so a change to the component applies to both portals.
 | `staff/page.tsx` | Staff dashboard: role, privileges, branch, account lookup. |
 | `staff/accounts/[accountNumber]/` | Any account for staff: overview, `deposit`, `withdraw`, `suspend` (suspend, or change end/notes), `reactivate`, `close`. `suspend` and `reactivate` are for managers and area managers; tellers are redirected to `/staff`. `staff/accounts/open/` opens an account for a customer. |
 | `staff/customers/` | Customer logins by customer id: daily requests and sign-ins with set-limit, create login, set status, set password (MANAGE_CUSTOMER_LOGINS). |
-| `staff/employees/`, `staff/employees/[employeeNumber]/` | User management: paged employee list by role; one card with login status and password (MANAGE_EMPLOYEES). |
+| `staff/employees/`, `staff/employees/[employeeNumber]/` | User management: paged employee list by role; one card with daily requests and sign-ins, login status and password (MANAGE_EMPLOYEES). |
 | `staff/settings/` | Staff settings hub, `password`, `security-questions`. |
 | `help/`, `terms/`, `privacy/` | Public content pages. |

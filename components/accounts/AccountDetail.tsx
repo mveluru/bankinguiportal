@@ -76,6 +76,11 @@ export default function AccountDetail({
       {data.accountStatus === "CLOSED" && (
         <p className="error">This account is closed and read-only. It cannot be reopened.</p>
       )}
+      {(data.accountStatus === "INACTIVE" || data.accountStatus === "DORMANT") && (
+        <p className="error">
+          This account is {data.accountStatus.toLowerCase()}: deposits and withdrawals are not available. Please contact customer support.
+        </p>
+      )}
       {staff && data.accountStatus !== "CLOSED" && (
         <div className="row" style={{ marginTop: 12 }}>
           {data.suspended ? (

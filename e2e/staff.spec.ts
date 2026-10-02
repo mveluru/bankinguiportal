@@ -115,3 +115,31 @@ test("a teller cannot open the customer rate-limit screen", async ({ page }) => 
   await expect(page.getByText("Managing customer logins needs the Manager role")).toBeVisible();
   await expect(page.getByLabel("Customer id")).toHaveCount(0);
 });
+
+// Reads an employee's real limit and sign-in count from the backend (area managers only); the PUT is mocked.
+test("an area manager sees an employee's daily requests and sign-ins and can set their limit", async ({ page }) => {
+  await signInStaff(page);
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "UserMgnt" }).click();
+  await page.getByRole("link", { name: "EMP-000010" }).click();
+
+  const panel = page.getByRole("region", { name: "Daily requests and sign-ins" });
+  await expect(panel).toBeVisible();
+  for (const label of ["Sign-ins today", "Requests today", "Remaining today", "Daily limit"]) {
+    await expect(panel.getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(panel.getByText(/default limit|own limit/)).toBeVisible();
+  await expect(panel.locator("dd").first()).toHaveText(/^\d+$/);
+
+  await page.route("**/api/staff/employees/*/rate-limit", (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ employeeNumber: "EMP-000010", dailyLimit: 250, customLimit: 250, defaultLimit: 1000, usageDate: "2026-10-01", requestsToday: 5, remainingToday: 245, loginsToday: 2 }),
+        })
+      : route.continue(),
+  );
+  await panel.getByLabel(/own daily limit/).fill("250");
+  await panel.getByRole("button", { name: "Set limit" }).click();
+  await expect(panel.getByText("Daily limit set to 250 requests.")).toBeVisible();
+});

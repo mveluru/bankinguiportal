@@ -13,9 +13,10 @@
 | `accounts/useOwnAccounts.ts` | client | The customer's own account numbers: from the profile cookie (set at sign-in), or one Dashboard call for an older session. Used by the lookup box and the Statements page. |
 | `accounts/AccountLookup.tsx` | client | "Go to account number" (staff: blank, 16 characters; a customer: pre-filled with their own account id, read-only, or a list of just their accounts) plus the big square scrollable box on the right that shows the account (`AccountDetail` in `embedded` mode) when View is pressed. Used on the customer home and the staff dashboard. |
 | `RateLimitNotice.tsx` | client | Modal pop-up, mounted once in the layout, shown when the API client reports a 429 (daily request limit) with the backend's message and a link to `/help#request-limit`. |
-| `SignOutButton.tsx` | client | Sign out with its confirm dialog; rendered in the top bar next to the theme switch. |
+| `LoginCount.tsx` | client | "Logins today: N" beside Sign out for customers and employees, from `getMyUsage`. Fetched once per page load (never on a timer: each call counts against the daily limit); renders nothing if it cannot be loaded. |
+| `SignOutButton.tsx` | client | Sign out with its confirm dialog; rendered in the top bar next to the theme switch, styled like it (`button.icon`) with blue text (`.signout`). |
 | `accounts/StatementViewer.tsx` | client | Date range, Generate, then Print and Download CSV for one account. Used by `/accounts/[n]/statement` and the `/statements` page (which adds an account picker). Generating emails/texts the statement, so only on a button press. |
-| `CustomerRateLimitPanel.tsx` | client | Staff: a customer's daily request limit, requests today / remaining and sign-ins today (from the banking service), with set-own-limit and use-default. Shown on the Customer logins screen. |
+| `RateLimitPanel.tsx` | client | Staff: a customer's or an employee's daily request limit, requests today / remaining and sign-ins today (from the banking service), with set-own-limit and use-default. Takes `who`, `id` and the stable API functions. Shown on Customer logins and on an employee's screen. |
 | `CredentialAdmin.tsx` | client | Forms used by staff on a login: set status, set password, create login. |
 | `CookieNotice.tsx` | client | Dismissible cookie *notice* (not a consent prompt); remembered in localStorage, versioned. |
 | `ThemeToggle.tsx` | client | Header light/dark switch. |

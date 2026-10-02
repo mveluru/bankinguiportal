@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import LoginCount from "@/components/LoginCount";
 import SignOutButton from "@/components/SignOutButton";
 import ThemeToggle from "@/components/ThemeToggle";
 import { homeOf } from "@/lib/session";
 
-/** The top bar: brand (with the employee's name and id, and their branch beneath, for staff) Sign out and the theme switch. The menu is the left panel, `SideNav`. */
+/** The top bar: brand (with the employee's name and id, and their branch beneath, for staff) Sign out, today's login count and the theme switch. The menu is the left panel, `SideNav`. */
 export default function NavBar() {
   const { user } = useAuth();
   const staff = user?.kind === "staff";
@@ -30,6 +31,7 @@ export default function NavBar() {
             Help
           </Link>
         )}
+        <LoginCount />
         <SignOutButton />
         <ThemeToggle />
       </div>

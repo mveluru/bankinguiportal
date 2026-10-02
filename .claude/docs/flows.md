@@ -1,5 +1,7 @@
 # Key flows
 
+**Sign-in refused.** The backend refuses a customer with no ACTIVE account (SUSPENDED, CLOSED, INACTIVE, DORMANT) with a 403 and a message naming the status; `/api/auth/login` passes it on and the sign-in form shows it, with no cookies set.
+
 **Sign-in.** `/login` (or `/staff/login`) → `POST /api/auth/login` → backend login → JWT into the httpOnly `bank_token`
 cookie, profile into `bank_profile` → full page load to `/` (or `/staff`). Wrong password 401, locked 423, login not
 active 403: the backend's message is shown as is.

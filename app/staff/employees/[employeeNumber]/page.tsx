@@ -5,8 +5,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { can, useAuth } from "@/components/AuthProvider";
 import { SetPasswordForm, SetStatusForm } from "@/components/CredentialAdmin";
+import RateLimitPanel from "@/components/RateLimitPanel";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
-import { getEmployee, setEmployeeLoginStatus, setEmployeePassword } from "@/lib/api";
+import { getEmployee, getEmployeeRateLimit, setEmployeeLoginStatus, setEmployeePassword, setEmployeeRateLimit } from "@/lib/api";
 import { titleCase } from "@/lib/format";
 import type { PortalEmployee } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export default function EmployeePage() {
       </p>
       {admin && (
         <div className="stack wide">
+          <RateLimitPanel who="employee" id={employee.employeeNumber} load={getEmployeeRateLimit} save={setEmployeeRateLimit} />
           <SetStatusForm apply={(status, reason) => setEmployeeLoginStatus(employee.employeeNumber, status, reason)} />
           <SetPasswordForm apply={(password) => setEmployeePassword(employee.employeeNumber, password)} />
         </div>

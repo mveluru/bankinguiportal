@@ -2,27 +2,39 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ErrorMessage, Loading } from "@/components/StateBlock";
-import { getCustomerRateLimit, setCustomerRateLimit } from "@/lib/api";
-import type { CustomerRateLimitView } from "@/lib/types";
+import type { RateLimitView } from "@/lib/types";
 
 const MAX = 1_000_000; // the backend's upper bound
 
 /**
- * Staff (MANAGE_CUSTOMER_LOGINS): a customer's daily request limit and today's usage from the banking service, including how many
- * times they signed in today, so a manager can check sign-in activity and raise or reset the limit. The count is the backend's.
+ * A customer's or an employee's daily request limit and today's usage from the banking service, including how many times they
+ * signed in today, so a manager can check sign-in activity and raise or reset the limit. The counts are the backend's. The caller
+ * says who it is for and how to load and save (customers: MANAGE_CUSTOMER_LOGINS; employees: MANAGE_EMPLOYEES, area managers).
  */
-export default function CustomerRateLimitPanel({ customerId }: { customerId: string }) {
-  const [view, setView] = useState<CustomerRateLimitView | null>(null);
+export default function RateLimitPanel<T extends RateLimitView>({
+  who,
+  id,
+  load: fetchView,
+  save: saveLimit,
+}: {
+  who: "customer" | "employee";
+  /** The customer id or employee number. */
+  id: string;
+  /** The API functions themselves (module-level, so they are stable), e.g. getCustomerRateLimit / setCustomerRateLimit. */
+  load: (id: string) => Promise<T>;
+  save: (id: string, maxRequestsPerDay: number | null) => Promise<T>;
+}) {
+  const [view, setView] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
-    return getCustomerRateLimit(customerId)
+    return fetchView(id)
       .then(setView)
       .catch((e: Error) => setError(e.message));
-  }, [customerId]);
+  }, [fetchView, id]);
 
   useEffect(() => {
     // Loads from the backend on mount; the setState calls happen when the request settles.
@@ -35,7 +47,7 @@ export default function CustomerRateLimitPanel({ customerId }: { customerId: str
     setError(null);
     setMessage(null);
     try {
-      const v = await setCustomerRateLimit(customerId, max);
+      const v = await saveLimit(id, max);
       setView(v);
       setMessage(max === null ? `Back on the default limit (${v.defaultLimit} requests a day).` : `Daily limit set to ${v.dailyLimit} requests.`);
     } catch (e) {
@@ -53,7 +65,7 @@ export default function CustomerRateLimitPanel({ customerId }: { customerId: str
     <section className="stack" aria-labelledby="rate-limit-heading">
       <h2 id="rate-limit-heading">Daily requests and sign-ins</h2>
       <p className="muted">
-        {view.usageDate} · {view.customLimit === null ? `default limit (${view.defaultLimit} a day)` : `this customer's own limit (default is ${view.defaultLimit})`}
+        {view.usageDate} · {view.customLimit === null ? `default limit (${view.defaultLimit} a day)` : `this ${who}'s own limit (default is ${view.defaultLimit})`}
       </p>
       <dl className="rate-stats">
         <div><dt>Sign-ins today</dt><dd>{view.loginsToday}</dd></div>
@@ -71,7 +83,7 @@ export default function CustomerRateLimitPanel({ customerId }: { customerId: str
         }}
       >
         <label>
-          Set this customer&apos;s own daily limit
+          Set this {who}&apos;s own daily limit
           <input name="limit" type="number" min={1} max={MAX} step={1} inputMode="numeric" />
         </label>
         <button type="submit" disabled={busy}>Set limit</button>

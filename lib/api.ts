@@ -6,6 +6,7 @@ import type {
   AccountResult,
   BankStatement,
   CustomerRateLimitView,
+  EmployeeRateLimitView,
   DepositRequest,
   EmployeeRole,
   LoginStatus,
@@ -15,6 +16,7 @@ import type {
   PortalEmployee,
   PortalHomeResponse,
   PortalKind,
+  RateLimitView,
   SecurityAnswer,
   SecurityQuestionView,
   SuspendAccountRequest,
@@ -123,6 +125,17 @@ export const setEmployeeLoginStatus = (employeeNumber: string, status: LoginStat
     send("PUT", { status, reason: reason || undefined }),
   );
 
+/** An employee's daily request limit and today's usage, including successful sign-ins (MANAGE_EMPLOYEES, area managers). */
+export const getEmployeeRateLimit = (employeeNumber: string) =>
+  request<EmployeeRateLimitView>(`${ROOT.staff}/employees/${encodeURIComponent(employeeNumber)}/rate-limit`);
+
+/** Gives the employee their own daily limit (1 to 1,000,000), or null to put them back on the default. */
+export const setEmployeeRateLimit = (employeeNumber: string, maxRequestsPerDay: number | null) =>
+  request<EmployeeRateLimitView>(
+    `${ROOT.staff}/employees/${encodeURIComponent(employeeNumber)}/rate-limit`,
+    send("PUT", { maxRequestsPerDay }),
+  );
+
 export const setEmployeePassword = (employeeNumber: string, newPassword: string) =>
   request<void>(`${ROOT.staff}/employees/${encodeURIComponent(employeeNumber)}/password`, send("PUT", { newPassword }));
 
@@ -144,6 +157,12 @@ export const setCustomerRateLimit = (customerId: string, maxRequestsPerDay: numb
 
 export const setCustomerPassword = (customerId: string, newPassword: string) =>
   request<void>(customerLogin(customerId, "password"), send("PUT", { newPassword }));
+
+/**
+ * The signed-in user's own daily request usage and sign-ins today (customer: GET /portal/rate-limit; employee: GET /staff/rate-limit).
+ * No privilege needed, and the call itself counts as one request, so ask once per page load, never on a timer.
+ */
+export const getMyUsage = (kind: PortalKind) => request<RateLimitView>(`${ROOT[kind]}/rate-limit`);
 
 // --- Credentials: the same calls in both portals ---
 export const credentialsApi = (kind: PortalKind) => ({

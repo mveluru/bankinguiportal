@@ -42,7 +42,7 @@ Customers cannot open, suspend or reactivate accounts: those are staff-only in t
 | Customer logins: create, set status, set password (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `POST /staff/customers/{id}/login`, `PUT .../login-status`, `PUT .../password` |
 | Customer daily requests and sign-ins (on the Customer logins screen): the customer's daily limit, whether it is their own or the default, requests today and remaining, and sign-ins today; set their own limit or put them back on the default (MANAGE_CUSTOMER_LOGINS) | `/staff/customers` | `GET`/`PUT /staff/customers/{id}/rate-limit` |
 | User management: employees list by role (MANAGE_EMPLOYEES) | `/staff/employees` | `GET /staff/employees?role=&page=&size=` |
-| One employee: card, set login status, set password (MANAGE_EMPLOYEES) | `/staff/employees/[employeeNumber]` | `GET /staff/employees/{n}`, `PUT .../login-status`, `PUT .../password` |
+| One employee: card, daily requests and sign-ins today with set-limit, set login status, set password (MANAGE_EMPLOYEES, area managers) | `/staff/employees/[employeeNumber]` | `GET /staff/employees/{n}`, `GET`/`PUT .../rate-limit`, `PUT .../login-status`, `PUT .../password` |
 | Settings, change password, security questions | `/staff/settings`, `/password`, `/security-questions` | `PUT /staff/password`, `PUT /staff/security-questions` |
 
 ### Both
@@ -165,6 +165,10 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
 - **Phones.** Every screen is checked on iPhone and Samsung profiles (iPhone 15, 13 Pro Max, Galaxy S24 and the 320px-wide Galaxy S9+) by
   `e2e/mobile.spec.ts`, which fails if anything sticks out past the screen edge. On a phone the left panel is a compact wrap of buttons
   above the page (Sign out in the same row) and tables scroll sideways inside their own box. Print styles hide the chrome when printing a statement.
+- **Logins today.** Next to Sign out, customers and employees see "Logins today: N", the banking service's count of their successful sign-ins
+  today (it adds one in `customer_rate_limits` / `employee_rate_limits` at every sign-in, so the portal writes nothing). It comes from the
+  caller's own `GET /portal/rate-limit` / `GET /staff/rate-limit` (token-based, no privilege), fetched once per page load because each
+  call counts as a request against the daily limit; if it can't be loaded nothing is shown. On a phone it sits on its own row under the brand.
 - **Customer since.** Customers see their account id, their name and "Customer since <year>" at the top of the left panel, where staff see their role. A customer's "Go to account number" box is filled in with their own account id and cannot be edited (a list of just their accounts if they have several); the backend refuses any other account (403) regardless. It is the year of the earliest account in the sign-in response, kept in the (display-only) profile cookie.
 - **Welcome headline.** Right after sign-in the landing screen shows a one-time banner: customers `Welcome! First Last · customer since YEAR`,
   staff `Welcome First Last EMP-000001`. It is built by `POST /api/auth/login`, held in `sessionStorage` only across the sign-in page
@@ -178,14 +182,20 @@ for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one 
   `components/IdleLogout.tsx` signs out after `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS` (default 120) without activity on any
   tab and lands on the sign-in page with `?expired=1`. Changing a password revokes every earlier token, so the portal
   signs the user out and asks them to sign in again.
+- **Sign-in is refused for a customer with no ACTIVE account.** Suspended, closed, inactive and dormant accounts cannot sign in: the backend
+  answers 403 with "Sign-in is not available: your account status is <STATUS>. Please contact the customer support service." and the sign-in
+  screen shows exactly that text (no session starts). INACTIVE and DORMANT are set by hand on the backend for now; the portal's account
+  screens say such an account is unavailable for transactions. Staff suspending a customer's only account therefore locks them out until it is
+  reactivated. `e2e/blocked-login.spec.ts` covers all four statuses.
+- **Sign out** is styled like the Dark/Light button next to it (`button.icon`) with blue text, and sits just right of "Logins today: N".
 - **Forgot password** is the backend's security-question flow: the user must have saved three answers in Settings first. A
   reset never undoes a lock or suspension an employee set.
 - **Daily request limit.** When the backend answers 429 ("Daily request limit exceeded for customer 1: max 1000 requests per day"), `lib/api.ts` announces it and `components/RateLimitNotice.tsx` pops a dialog with that message on whatever screen the user is on (shown once when the limit is first exceeded, not on every request or load, and again only after a request has succeeded in between; no screen shows it as a red message; a screen that could not load shows a short grey "not available right now" note instead of staying blank). Help explains it at `/help#request-limit`.
 - `X-Customer-Id` is still required by the backend gateway and is sent by the route handlers (customer id, employee number, or the
   caller's IP before sign-in). For a signed-in customer the daily limit is now counted against the customer in the token, not the header,
   and kept in the backend's `customer_rate_limits` table, so it survives a backend restart and each customer can have their own limit
-  (managers set it on the Customer logins screen). Unauthenticated calls (sign-in, password reset) and staff calls are still counted per
-  header value, in memory. A 429 from the backend reaches the browser as a normal 429 message.
+  (managers set it on the Customer logins screen). Employees are counted the same way, per employee in `employee_rate_limits`, with the
+  limit set by an area manager on the employee's screen. Only unauthenticated calls (sign-in, password reset) are counted per header value, in memory. A 429 from the backend reaches the browser as a normal 429 message.
 - The cookie banner (`components/CookieNotice.tsx`) is deliberately a *notice*, not a consent prompt: the portal sets only
   strictly necessary cookies plus the theme you pick. Terms (`/terms`) and Privacy (`/privacy`) are public server
   components in `lib/legal.ts`, with a visible "template" notice until `LEGAL_REVIEWED=true`; update `LAST_UPDATED`

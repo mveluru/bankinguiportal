@@ -25,7 +25,7 @@ backend's login, stores the token in the httpOnly `bank_token` cookie and return
 - `Authorization: Bearer <JWT>` (from the cookie; absent before sign-in and on the open calls).
 - `X-Customer-Id`: required by the gateway. It is the customer id, the employee number, or the caller's IP before sign-in. For a
   signed-in customer the backend counts the daily limit against the token's customer (table `customer_rate_limits`, with an optional
-  per-customer limit), ignoring the header; sign-in, password reset and staff calls are counted per header value in memory.
+  per-customer limit), ignoring the header; employees likewise in `employee_rate_limits`; only sign-in and password-reset calls are counted per header value in memory.
   **Not authentication.**
 - `Content-Type: application/json`, `cache: "no-store"`.
 
@@ -53,6 +53,8 @@ backend's login, stores the token in the httpOnly `bank_token` cookie and return
 | `listEmployees`, `getEmployee` | `GET /employees?role=&page=&size=`, `GET /employees/{n}` (staff, MANAGE_EMPLOYEES) | employees pages |
 | `setEmployeeLoginStatus`, `setEmployeePassword` | `PUT /employees/{n}/login-status`, `PUT /employees/{n}/password` | employee page |
 | `createCustomerLogin`, `setCustomerLoginStatus`, `setCustomerPassword` | `POST /customers/{id}/login`, `PUT .../login-status`, `PUT .../password` (staff, MANAGE_CUSTOMER_LOGINS) | customer logins page |
+| `getMyUsage(kind)` | `GET /rate-limit` (portal: customer token; staff: employee token): the caller's own limit, requests today, remaining and `loginsToday`; no privilege; the call counts as one request, so once per page load only | `LoginCount` in the top bar |
+| `getEmployeeRateLimit`, `setEmployeeRateLimit` | `GET`/`PUT /employees/{n}/rate-limit` (staff, MANAGE_EMPLOYEES = area managers): the same limit/usage/sign-ins view for an employee | `RateLimitPanel` on the employee page |
 | `getCustomerRateLimit`, `setCustomerRateLimit` | `GET`/`PUT /customers/{id}/rate-limit` (staff, MANAGE_CUSTOMER_LOGINS): daily limit, requests today, remaining, sign-ins today; set the customer's own limit (1 to 1,000,000) or `null` for the default | `CustomerRateLimitPanel` on Customer logins |
 | `credentialsApi(kind).changePassword` | `PUT /password` | change password |
 | `credentialsApi(kind).questionCatalog / setSecurityQuestions` | `GET /security-questions/catalog`, `PUT /security-questions` | security questions |

@@ -81,7 +81,14 @@ test("the daily request limit pops up once when exceeded, never inline, and agai
   const dialog = page.getByRole("dialog", { name: "Daily request limit reached" });
   await page.evaluate(() => sessionStorage.removeItem("dailyLimitShown")); // independent of any real limit hit while signing in
 
-  await page.route("**/api/portal/home**", limited);
+  // Once the limit is used up every call for that customer fails, so refuse the Dashboard call and the top bar's count call alike.
+  const refuseAll = async () => {
+    await page.unroute("**/api/portal/home**");
+    await page.unroute("**/api/portal/rate-limit");
+    await page.route("**/api/portal/home**", limited);
+    await page.route("**/api/portal/rate-limit", limited);
+  };
+  await refuseAll();
   await page.goto("/");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(message)).toBeVisible();
@@ -96,13 +103,13 @@ test("the daily request limit pops up once when exceeded, never inline, and agai
 
   // A successful request means the limit reset; exceeding it again pops up again.
   await page.unroute("**/api/portal/home**");
+  await page.unroute("**/api/portal/rate-limit");
   await page.route("**/api/portal/home**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ totalActiveAccounts: 0, totalSuspendedAccounts: 0, accounts: [], nearbyLocations: [] }) }),
   );
   await page.reload();
   await expect(page.getByRole("heading", { name: /Your accounts/ })).toBeVisible();
-  await page.unroute("**/api/portal/home**");
-  await page.route("**/api/portal/home**", limited);
+  await refuseAll();
   await page.reload();
   await expect(dialog).toBeVisible();
 

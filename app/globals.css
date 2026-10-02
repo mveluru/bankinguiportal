@@ -13,6 +13,8 @@ main { flex:1; width:100%; max-width:960px; margin:0 auto; padding:24px 16px; }
 .topbar { display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--card); border-bottom:1px solid var(--line); }
 .topbar-actions { display:flex; align-items:center; gap:8px; }
 .topbar-actions.push { margin-left:auto; }
+.login-count { font-size:.85rem; color:var(--muted); white-space:nowrap; margin-right:6px; }
+.login-count strong { color:var(--fg); }
 /* Layout: the light-blue left panel (signed in only) beside the page. */
 .shell { flex:1; display:flex; align-items:stretch; position:relative; }
 .shell main { min-width:0; }
@@ -83,6 +85,7 @@ dialog.confirm { border:1px solid var(--line); border-radius:8px; background:var
 dialog.confirm::backdrop { background:rgba(0,0,0,.5); }
 .actions { justify-content:center; }
 button.icon { background:none; color:var(--fg); border:1px solid var(--line); padding:4px 10px; }
+button.icon.signout { color:var(--brand); font-weight:600; }
 
 /* ---- Notifications ---- */
 .count { display:inline-block; min-width:1.4em; margin-left:6px; padding:0 6px; border-radius:99px; background:var(--err); color:var(--bg); font-size:.75rem; font-weight:700; line-height:1.4em; text-align:center; }
@@ -153,6 +156,10 @@ td.num, .nowrap { white-space:nowrap; } /* never split an amount or a date acros
 /* Phones: hamburger menu, tighter spacing, full-width primary buttons, stacked table cards. */
 @media (max-width: 640px) {
   .topbar { gap:8px 12px; padding:8px 16px; }
+  /* With the login count present the controls get their own row under the brand, so the brand is never squeezed to a sliver. */
+  .topbar { flex-wrap:wrap; }
+  .topbar-actions:has(.login-count) { flex:1 1 100%; justify-content:flex-end; }
+  .topbar-actions:has(.login-count) .login-count { margin-right:auto; }
   .brand-block { order:1; flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
   .brand { font-size:1.05rem; }
   .topbar-actions { order:2; }

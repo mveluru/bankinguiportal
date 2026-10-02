@@ -23,7 +23,8 @@ export default function SignOutButton() {
 
   return (
     <>
-      <button type="button" onClick={() => dialog.current?.showModal()}>
+      {/* Same look as the Dark/Light button next to it (button.icon), with blue text. */}
+      <button type="button" className="icon signout" onClick={() => dialog.current?.showModal()}>
         Sign out
       </button>
       <dialog ref={dialog} className="confirm" aria-labelledby="signout-title">
