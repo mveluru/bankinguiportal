@@ -93,6 +93,12 @@ account and staff screens, the idle logout and the close-account Yes/No dialog. 
 data (staff suspend, then reactivate, an account); it skips itself unless the account is active. Override the defaults
 with `E2E_USER`, `E2E_PASSWORD`, `E2E_STAFF_USER`, `E2E_STAFF_PASSWORD`, `E2E_ACCOUNT` and `E2E_PORT`.
 
+**Mind the daily request limit.** The backend allows each customer (and each employee) 1,000 requests a day, counted in memory per
+customer id; it resets at midnight or when the backend restarts. A full run is a few hundred requests for `customer0001`, so several runs in
+a day use it up, and then every screen for that customer fails to load ("Daily request limit exceeded for customer 1"). If that
+happens, restart the backend (its counters start again), or use another customer: `E2E_USER_B` / `E2E_PASSWORD_B` / `E2E_ACCOUNT_B`
+drive `e2e/customer-account.spec.ts` (customer0002 by default).
+
 ## Deploy
 
 `node_modules/` and `.next/` are not in git (gitignored). The repo holds `package.json` (what to install) and
