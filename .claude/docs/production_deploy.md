@@ -498,3 +498,556 @@ Or with Compose: update the image tag and `docker compose up -d`.
 | Environment variables not set in container | Use `--env-file`, `-e`, or Docker Compose `environment:`. Do not bake them into the image. Rebuild if you need to change `NEXT_PUBLIC_*` vars. |
 | Container can reach the database but portal returns 502 | The container's network may be isolated. In Docker Compose, use the service name (`http://banking.internal`) only if it's in the same network. For external services, use the full hostname/IP. |
 | Health check keeps failing | Portal needs 5+ seconds to start. Increase `start_period` in the health check. Or run `docker logs` to see if there's a startup error. |
+
+## Pre-deployment Checklist
+
+Before deploying to production, verify:
+
+### Code & Build
+- [ ] `npx tsc --noEmit` passes (no TypeScript errors)
+- [ ] `npx eslint .` passes (no linting errors)
+- [ ] `npm run build` succeeds without warnings
+- [ ] All source files are committed to git
+- [ ] Branch is up to date with `main`
+- [ ] Relevant e2e tests pass: `npx playwright test e2e/`
+- [ ] No secrets (passwords, tokens, API keys) in committed files
+- [ ] `.env.local` is in `.gitignore` and not staged
+
+### Environment Configuration
+- [ ] `.env.prod.brite` or `/etc/bankinguiportal.env` exists
+- [ ] All `CHANGE_ME` placeholders are replaced
+- [ ] `BANKING_BACKEND_URL` points to production backend (not staging)
+- [ ] `NEXT_PUBLIC_*` build args match production values
+- [ ] `NODE_ENV=production` is set
+- [ ] File permissions are secure: `chmod 600 /etc/bankinguiportal.env`
+
+### Deployment Path
+- [ ] Chose deployment method (systemd + nginx OR Docker OR direct Node.js)
+- [ ] If Docker: image built, tagged, and pushed to registry
+- [ ] If systemd: release tarball created and checksummed
+- [ ] Release directory has correct ownership and permissions
+
+### Security
+- [ ] HTTPS certificate installed and valid (not self-signed in production)
+- [ ] Certificate renewal is automated (Let's Encrypt + certbot)
+- [ ] Firewall rules configured (open 80, 443; close others)
+- [ ] Process runs as unprivileged user (not root, except for port 443)
+- [ ] No sensitive data in logs (use `grep -r "password\|token\|secret" .`)
+- [ ] SSH key-based auth only (no passwords on servers)
+
+### Infrastructure
+- [ ] Server has minimum 2 GB RAM (4 GB recommended for production)
+- [ ] Disk space: 5 GB free (`.next/`, `node_modules/`, logs)
+- [ ] Network access to banking backend verified: `curl http://banking.internal:8081/brite`
+- [ ] Backup strategy in place (releases keep 3+ versions for rollback)
+- [ ] Time sync verified: `date` matches NTP server
+
+### Monitoring & Alerting
+- [ ] Logging configured (systemd journal or Docker logs)
+- [ ] Log rotation enabled (logrotate or Docker log driver)
+- [ ] Health check endpoint monitored (ping `/login` every 30s)
+- [ ] Alerting enabled for service restart/failure
+- [ ] Uptime monitoring in place (Prometheus, Grafana, or equivalent)
+
+### Operational Readiness
+- [ ] Runbook documentation prepared (see Operational Runbooks below)
+- [ ] On-call team briefed on deployment
+- [ ] Rollback plan tested and documented
+- [ ] Deployment window scheduled (off-peak if possible)
+
+## Security Hardening
+
+### Firewall Configuration
+
+```bash
+# Allow only necessary ports
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp          # SSH
+sudo ufw allow 80/tcp          # HTTP (redirect to HTTPS)
+sudo ufw allow 443/tcp         # HTTPS
+sudo ufw enable
+```
+
+If using systemd + nginx:
+```bash
+# Internal traffic only (nginx to Node)
+sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 3000
+```
+
+### User & Permissions
+
+```bash
+# Create unprivileged service user
+sudo useradd -r -s /bin/false bankui
+sudo chown -R bankui:bankui /opt/bankinguiportal
+sudo chmod 750 /opt/bankinguiportal
+
+# Secure environment file
+sudo chown root:bankui /etc/bankinguiportal.env
+sudo chmod 600 /etc/bankinguiportal.env
+
+# Secure certificates
+sudo chmod 600 /etc/ssl/private/key.pem
+sudo chmod 644 /etc/ssl/certs/cert.pem
+```
+
+### HTTPS Certificate Management (Let's Encrypt)
+
+Install certbot:
+```bash
+sudo apt-get install certbot python3-certbot-nginx  # or certbot-dns-* for your DNS provider
+```
+
+Obtain certificate:
+```bash
+sudo certbot certonly --nginx -d portal.example.com \
+  --agree-tos \
+  --email admin@example.com \
+  --no-eff-email
+```
+
+Auto-renewal (certbot handles this):
+```bash
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+sudo systemctl status certbot.timer
+```
+
+Update nginx config to use Let's Encrypt certs:
+```nginx
+ssl_certificate /etc/letsencrypt/live/portal.example.com/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/portal.example.com/privkey.pem;
+
+# Security headers
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+### Dependency Audit
+
+Before each deployment:
+```bash
+npm audit                      # Show vulnerabilities
+npm audit fix                  # Auto-fix fixable issues
+npm audit fix --audit-level=moderate  # Be selective
+git diff package-lock.json     # Review what changed
+```
+
+## Monitoring & Logging
+
+### Systemd Journal Configuration
+
+```bash
+# Increase journal retention
+sudo mkdir -p /etc/systemd/journald.conf.d/
+sudo tee /etc/systemd/journald.conf.d/bankinguiportal.conf > /dev/null <<EOF
+[Journal]
+MaxRetentionSec=30day
+SystemMaxUse=1G
+RuntimeMaxUse=100M
+EOF
+
+sudo systemctl restart systemd-journald
+```
+
+View logs:
+```bash
+# Last 100 lines
+journalctl -u bankinguiportal -n 100
+
+# Tail in real-time
+journalctl -u bankinguiportal -f
+
+# Last hour
+journalctl -u bankinguiportal --since "1 hour ago"
+
+# Filter by priority
+journalctl -u bankinguiportal -p err  # Only errors
+```
+
+### Log Rotation (for Direct Node.js HTTPS or Systemd)
+
+Create `/etc/logrotate.d/bankinguiportal`:
+```bash
+/var/log/bankinguiportal/*.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  create 0640 bankui bankui
+  postrotate
+    systemctl reload bankinguiportal > /dev/null 2>&1 || true
+  endscript
+}
+```
+
+### Docker Logging Configuration
+
+In `docker-compose.yml`:
+```yaml
+services:
+  bankinguiportal:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        labels: "com.example.service=bankinguiportal"
+```
+
+View Docker logs:
+```bash
+docker logs -f bankinguiportal
+docker logs --tail 100 bankinguiportal
+docker logs --since 1h bankinguiportal
+```
+
+### Health Monitoring
+
+Health check endpoint (built-in):
+```bash
+# Simple HTTP GET
+curl -s https://portal.example.com/login
+
+# Check status code
+curl -s -o /dev/null -w "%{http_code}\n" https://portal.example.com/login
+# Expected: 200
+```
+
+Prometheus-style metrics endpoint (for monitoring):
+```bash
+# Add to your monitoring setup (Prometheus, Grafana, Datadog, etc.)
+# This is a template for custom monitoring
+curl -s https://portal.example.com/api/health 2>/dev/null || echo "UNHEALTHY"
+```
+
+## Capacity & Performance
+
+### Resource Requirements
+
+| Environment | CPU | RAM | Disk | Notes |
+|---|---|---|---|---|
+| Development | 2+ cores | 4 GB | 10 GB | Local testing |
+| Staging | 2 cores | 4 GB | 10 GB | Pre-production validation |
+| Production (small) | 2 cores | 4 GB | 10 GB | < 100 concurrent users |
+| Production (large) | 4+ cores | 8+ GB | 20+ GB | > 100 concurrent users, load balancing |
+
+### Node.js Tuning
+
+```bash
+# In systemd service or docker run:
+# Increase max open files
+ulimit -n 65536
+
+# Set heap size (optional, for large traffic)
+export NODE_OPTIONS="--max-old-space-size=2048"
+```
+
+In systemd service:
+```ini
+[Service]
+LimitNOFILE=65536
+Environment="NODE_OPTIONS=--max-old-space-size=2048"
+```
+
+In Docker:
+```yaml
+environment:
+  NODE_OPTIONS: "--max-old-space-size=2048"
+```
+
+### Load Balancing (Multiple Instances)
+
+If running multiple Node.js instances behind nginx:
+
+```nginx
+upstream bankinguiportal_backend {
+  least_conn;                          # Connection balancing
+  server 127.0.0.1:3001;
+  server 127.0.0.1:3002;
+  server 127.0.0.1:3003;
+  
+  # Health checks every 30s
+  check interval=30000 rise=2 fall=5 timeout=5000 type=http;
+  check_http_send "GET /login HTTP/1.0\r\n\r\n";
+  check_http_expect_alive http_2xx;
+}
+
+server {
+  listen 443 ssl;
+  server_name portal.example.com;
+  
+  location / {
+    proxy_pass http://bankinguiportal_backend;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+Start multiple Node instances:
+```bash
+for port in 3001 3002 3003; do
+  PORT=$port npm start &
+done
+```
+
+Or use systemd socket activation / PM2.
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'  # Deploy on version tags (v1.0.0, etc.)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint
+        run: npx eslint .
+      
+      - name: Type check
+        run: npx tsc --noEmit
+      
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SESSION_WARNING_SECONDS: 120
+          NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS: 120
+      
+      - name: Run tests
+        run: npx playwright test e2e/
+        env:
+          BANKING_BACKEND_URL: ${{ secrets.STAGING_BACKEND_URL }}
+      
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:${{ github.ref_name }} \
+            --build-arg NEXT_PUBLIC_SESSION_WARNING_SECONDS=120 \
+            --build-arg NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120 \
+            .
+      
+      - name: Push to registry
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:${{ github.ref_name }}
+          docker tag ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:${{ github.ref_name }} \
+                     ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:latest
+          docker push ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:latest
+      
+      - name: Notify deployment
+        run: |
+          echo "✅ Image pushed: ${{ secrets.DOCKER_REGISTRY }}/bankinguiportal:${{ github.ref_name }}"
+          echo "Deploy with: docker compose up -d"
+```
+
+Secrets to configure in GitHub:
+- `DOCKER_REGISTRY`: docker.io/yourorg
+- `DOCKER_USER`: Docker Hub username
+- `DOCKER_PASSWORD`: Docker Hub token
+- `STAGING_BACKEND_URL`: Staging backend address
+
+### Deployment Process
+
+```bash
+# 1. Tag the release
+git tag v1.0.0
+git push origin v1.0.0
+
+# 2. GitHub Actions automatically:
+#    - Builds image
+#    - Runs tests
+#    - Pushes to registry
+#    - Sends notification
+
+# 3. On the server:
+ssh deploy@production
+docker compose pull
+docker compose up -d
+docker compose logs -f
+```
+
+## Operational Runbooks
+
+### Normal Deployment
+
+**Time estimate:** 5–10 minutes (with 0 downtime using nginx + load balancing)
+
+```bash
+# 1. Build and test locally
+npm ci && npm run build && npx playwright test e2e/
+
+# 2. Tag the release
+git tag v1.2.3
+git push origin v1.2.3
+
+# 3. Wait for CI/CD to build and push image
+
+# 4. On production server, deploy
+ssh deploy@production
+cd /home/deploy/bankinguiportal
+docker compose pull
+docker compose up -d
+sleep 5
+docker compose logs bankinguiportal | head -20
+
+# 5. Verify
+curl -s https://portal.example.com/login | grep -q "Sign in" && echo "✅ Deployment successful"
+```
+
+### Emergency Rollback
+
+**Time estimate:** 2–3 minutes (immediate action if production issue)
+
+```bash
+# 1. Identify last known good version
+docker images | grep bankinguiportal | head -5
+
+# 2. Rollback (keep deployment running)
+# Edit docker-compose.yml or use:
+docker pull docker.io/yourorg/bankinguiportal:v1.2.2
+docker stop bankinguiportal
+docker run --name bankinguiportal ... docker.io/yourorg/bankinguiportal:v1.2.2
+
+# 3. Verify
+curl -s https://portal.example.com/login | grep -q "Sign in" && echo "✅ Rollback successful"
+
+# 4. Document incident
+# Create issue: "Incident: v1.2.3 had issue X, rolled back to v1.2.2"
+```
+
+### Restart on Failure
+
+If service crashes:
+
+```bash
+# Systemd
+sudo systemctl restart bankinguiportal
+sudo journalctl -u bankinguiportal -n 50 -f
+
+# Docker
+docker restart bankinguiportal
+docker logs -f bankinguiportal
+```
+
+The `Restart=on-failure` in systemd or `restart: unless-stopped` in Compose will auto-restart.
+
+### Database/Backend Connection Issues
+
+```bash
+# 1. Check backend is reachable
+ssh deploy@production
+curl -s http://banking.internal:8081/brite
+
+# 2. Verify environment variables
+grep BANKING_BACKEND_URL /etc/bankinguiportal.env
+
+# 3. Check portal logs
+journalctl -u bankinguiportal -p err
+
+# 4. If backend is down, failover if available
+# Update BANKING_BACKEND_URL to backup backend
+sudo systemctl restart bankinguiportal
+```
+
+### Certificate Renewal Issues
+
+```bash
+# 1. Check certificate expiry
+openssl x509 -in /etc/letsencrypt/live/portal.example.com/cert.pem -noout -dates
+
+# 2. Test renewal
+sudo certbot renew --dry-run
+
+# 3. If renewal fails, check logs
+sudo journalctl -u certbot -f
+
+# 4. Manual renewal if needed
+sudo certbot renew --force-renewal
+sudo systemctl reload nginx
+```
+
+### Disk Space Issues
+
+```bash
+# 1. Check disk usage
+df -h /opt/bankinguiportal
+du -sh /opt/bankinguiportal/*
+
+# 2. Clean old releases (keep last 3–5)
+ls -lh /opt/bankinguiportal/releases/
+sudo rm -rf /opt/bankinguiportal/releases/old-version
+
+# 3. Clean Docker
+docker image prune -a --force
+docker system prune --force
+
+# 4. Enable log rotation if not already done
+logrotate -f /etc/logrotate.d/bankinguiportal
+```
+
+### Performance Degradation
+
+```bash
+# 1. Check load
+top -b -n 1 | head -15
+
+# 2. Check memory usage
+free -h
+
+# 3. Check network
+netstat -an | grep ESTABLISHED | wc -l
+
+# 4. Check backend latency
+time curl -s http://banking.internal:8081/brite/health
+
+# 5. Scale up if needed (add more Node instances behind load balancer)
+# Or increase NODE_OPTIONS heap size
+```
+
+### Audit & Compliance
+
+```bash
+# 1. Check no secrets in logs
+journalctl -u bankinguiportal | grep -iE "password|token|secret|key"
+# Should return nothing
+
+# 2. Verify file permissions
+stat /etc/bankinguiportal.env
+# Should be -rw------- (mode 600)
+
+# 3. Check release integrity
+sha256sum /tmp/bankinguiportal-*.tgz
+
+# 4. Audit user activities
+sudo journalctl -u bankinguiportal --since "1 day ago" | tail -20
+```
