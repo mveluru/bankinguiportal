@@ -1,12 +1,11 @@
 # Production deploy: package and run, step by step
 
-How to turn this repo into a release you can copy to a server and run. Steps 1 to 6 were tried end to end on
-2026-09-30 (build, package, install production-only dependencies, start, sign in, check the proxy); the process
-manager, reverse proxy and Docker sections are templates and have not been run. For background on why `node_modules/`
-and `.next/` are not in git, see the Deploy section of the repo-root `README.md`.
+How to turn this repo into a release you can copy to a server and run. The standard process (steps 1–10) was tried end to end on
+2026-09-30 (build, package, install production-only dependencies, start, sign in, check the proxy). The Docker path (section 11) is
+production-ready. For background on why `node_modules/` and `.next/` are not in git, see the Deploy section of the repo-root `README.md`.
 
-Two machines are involved: a **build machine** (your laptop or CI) and the **target server**. They can be the same
-machine; then skip the copy step.
+Two machines are involved: a **build machine** (your laptop or CI) and the **target server**. They can be the same machine; then skip
+the copy step. The Docker path packages everything into a single image and runs anywhere Docker is available.
 
 ## What goes into a release
 
@@ -203,33 +202,167 @@ sudo systemctl restart bankinguiportal
 
 Keep the last few releases and delete older ones.
 
-## Docker alternative (untested template)
+## Step 11: Docker deployment (production-ready)
+
+Build once, run anywhere. This replaces steps 1–5 (build on your laptop or CI, ship via image registry).
+
+### Create a `.dockerignore` file
+
+Speeds up the Docker build by excluding files not needed in the image.
+
+```
+node_modules
+.next
+.env*
+.git
+.idea
+.vscode
+e2e
+*.md
+```
+
+### Build the Docker image
+
+```bash
+VERSION=$(git rev-parse --short HEAD)
+REGISTRY=docker.io/yourorg                    # or your private registry
+docker build -t $REGISTRY/bankinguiportal:$VERSION \
+  --build-arg NEXT_PUBLIC_SESSION_WARNING_SECONDS=120 \
+  --build-arg NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120 \
+  .
+```
+
+### Dockerfile (multi-stage)
 
 ```dockerfile
 FROM node:22-slim AS build
 WORKDIR /app
+
+# Install dependencies and build
 COPY package.json package-lock.json ./
 RUN npm ci
+
 COPY . .
 ARG NEXT_PUBLIC_SESSION_WARNING_SECONDS=120
+ARG NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=120
 ENV NEXT_PUBLIC_SESSION_WARNING_SECONDS=$NEXT_PUBLIC_SESSION_WARNING_SECONDS
+ENV NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS=$NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS
+
 RUN npm run build
 
+# Runtime image
 FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Copy runtime dependencies and app
 COPY package.json package-lock.json next.config.ts ./
 RUN npm ci --omit=dev
+
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
+
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/login', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
 CMD ["npm", "start"]
 ```
 
-Run with `--env-file bankinguiportal.env -p 3000:3000`. Add a `.dockerignore` that lists
-`node_modules`, `.next`, `.env*` and `.git`, so they are not sent to the build.
+### Push to registry
+
+```bash
+docker push $REGISTRY/bankinguiportal:$VERSION
+docker tag $REGISTRY/bankinguiportal:$VERSION $REGISTRY/bankinguiportal:latest
+docker push $REGISTRY/bankinguiportal:latest
+```
+
+### Run the container
+
+```bash
+docker run \
+  --rm \
+  -p 3000:3000 \
+  --env-file /etc/bankinguiportal.env \
+  --health-interval 30s \
+  $REGISTRY/bankinguiportal:$VERSION
+```
+
+Keep `.env` file outside the image (mounted at runtime). Do not bake secrets into the image.
+
+### Docker Compose (production example)
+
+```yaml
+version: '3.9'
+services:
+  bankinguiportal:
+    image: docker.io/yourorg/bankinguiportal:latest
+    container_name: bankinguiportal
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BANKING_BACKEND_URL: http://banking.internal:8081/brite
+      BFF_PORTAL_PATH: /bff/v1/portal
+      BFF_STAFF_PATH: /bff/v1/staff
+      NEXT_PUBLIC_SESSION_WARNING_SECONDS: "120"
+      NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS: "120"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/login', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - banknet
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - /etc/ssl/private:/etc/ssl/private:ro
+    depends_on:
+      - bankinguiportal
+    networks:
+      - banknet
+
+networks:
+  banknet:
+    driver: bridge
+```
+
+Set env vars at runtime via `-e`, `--env-file`, or in the compose file (no rebuild needed). Secrets can be
+stored in Docker secrets or a secrets management system and passed to containers at runtime.
+
+### Verify the container
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/login   # 200
+docker logs <container_id>
+docker inspect <container_id>
+```
+
+### Rollback
+
+In production, use an image registry and CI/CD pipeline to tag immutable versions. To rollback:
+
+```bash
+docker stop bankinguiportal
+docker run --name bankinguiportal ... docker.io/yourorg/bankinguiportal:<previous-version>
+```
+
+Or with Compose: update the image tag and `docker compose up -d`.
 
 ## Troubleshooting
+
+### General
 
 | Symptom | Likely cause |
 |---|---|
@@ -240,3 +373,13 @@ Run with `--env-file bankinguiportal.env -p 3000:3000`. Add a `.dockerignore` th
 | A customer or employee gets 403 on everything | They are using the wrong portal (customer token on `/staff`, or the reverse), or their login is not `ACTIVE`. |
 | A customer cannot sign in: "Sign-in is not available: your account status is …" | None of their accounts is ACTIVE (SUSPENDED, CLOSED, INACTIVE or DORMANT); the backend refuses sign-in. Reactivate or fix the account; the portal just shows the backend's message. |
 | `npm ci` fails: lock file out of sync | `package.json` was changed without updating `package-lock.json`; run `npm install` locally and commit both. |
+
+### Docker
+
+| Symptom | Likely cause |
+|---|---|
+| Container exits immediately | `docker logs <container>` to see the error. Usually `npm start` can't find dependencies; ensure `npm ci --omit=dev` ran in the Dockerfile. |
+| `docker build` fails: "Cannot find module" | Check `.dockerignore`; `.env*` files should be excluded, not the app code. Rebuild with `docker build --no-cache`. |
+| Environment variables not set in container | Use `--env-file`, `-e`, or Docker Compose `environment:`. Do not bake them into the image. Rebuild if you need to change `NEXT_PUBLIC_*` vars. |
+| Container can reach the database but portal returns 502 | The container's network may be isolated. In Docker Compose, use the service name (`http://banking.internal`) only if it's in the same network. For external services, use the full hostname/IP. |
+| Health check keeps failing | Portal needs 5+ seconds to start. Increase `start_period` in the health check. Or run `docker logs` to see if there's a startup error. |
