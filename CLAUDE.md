@@ -3,8 +3,8 @@
 # Brite Banking UI Portal: project rules
 
 Next.js 16 (App Router, React 19, TypeScript) front end for the Spring banking service (`bankingservices`, port 8081, context path `/brite`).
-Two portals: customers at `/`, employees under `/staff`. Read the layer skill in `.claude/skills/` before changing that layer, and the docs in
-`.claude/docs/` (start with `overview.md`). Screens, routes and env vars are in `README.md`.
+Two portals: customers at `/`, employees under `/staff`. Read the layer skill in `.claude/skills/` before changing that layer, read the
+`deployment` skill before deploying to production, and the docs in `.claude/docs/` (start with `overview.md`). Screens, routes and env vars are in `README.md`.
 
 ## Architecture in one paragraph
 
