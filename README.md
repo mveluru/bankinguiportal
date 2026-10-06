@@ -138,27 +138,44 @@ Build once and ship, instead of building on the server:
 including a trimmed `node_modules`). It is not enabled today, and `public/` and `.next/static` must then be copied
 next to the standalone server.
 
-Step-by-step packaging and deployment (release tarball, systemd, nginx, Docker, rollback):
-[`.claude/docs/production_deploy.md`](.claude/docs/production_deploy.md).
+**Before deploying to production, read the [`deployment` skill](.claude/skills/deployment/SKILL.md)** for:
+- 3 deployment paths (systemd+nginx, Docker, direct Node.js HTTPS)
+- Pre-deployment checklist, security hardening, monitoring & logging
+- Capacity planning, CI/CD automation, operational runbooks
+
+**Step-by-step guide:** [`.claude/docs/production_deploy.md`](.claude/docs/production_deploy.md) covers:
+- Build process (steps 1–3)
+- Packaging for release (step 4: tarball or Docker image)
+- Deployment to server (step 5: copy & install OR docker compose)
+- Environment configuration (step 6)
+- Service startup (step 8: systemd or Docker)
+- HTTPS setup (step 9a: nginx proxy OR step 9b: direct Node.js)
+- Verification & rollback (step 10)
+- Docker multi-stage deployment (step 11)
+- Troubleshooting (general & Docker-specific)
+- Operational runbooks (deploy, rollback, incident response)
 
 ### Production checklist
 
 - **Environment variables** are not in git (`.env.local` is gitignored), so set them on the host. The one that matters is
   `BANKING_BACKEND_URL` (the banking service, read when the server starts); see `.env.prod.brite` for the rest.
   `NEXT_PUBLIC_*` values (`NEXT_PUBLIC_SESSION_WARNING_SECONDS`, `NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS`) are baked into the
-  browser bundle during `npm run build`, so set them *before* building.
+  browser bundle during `npm run build`, so set them *before* building. Use the checklist in the deployment skill.
 - **No state on disk:** the portal keeps no users, sessions or logs of its own, so there is nothing to persist or back up.
 - **Banking backend:** only the Next server calls it, so it can sit on an internal address. The browser never needs
   access, and `banking.portal.allowed-origins` (CORS) is not used by this portal. The JWT signing key
   (`BANKING_JWT_SECRET`) and token lifetime (`banking.jwt.expiration-minutes`, 30) are the backend's settings.
-- **HTTPS:** serve behind a TLS-terminating proxy; the sign-in cookies are marked Secure in production, so over plain
+- **HTTPS:** serve behind a TLS-terminating proxy (nginx) OR run Node.js directly with HTTPS; the sign-in cookies are marked Secure in production, so over plain
   HTTP sign-in appears to loop. The portal passes `X-Forwarded-For` to the backend's rate limiter before sign-in.
 
 ## Docs
 
 Architecture and per-layer reference live in [`.claude/docs/`](.claude/docs/index.md) (start with `overview.md`; `testing.md` covers the e2e
-specs). Rules for changing each layer are skills in [`.claude/skills/`](.claude/skills/), one `SKILL.md` per layer plus `portal-conventions`
-(project-wide) and `e2e`. `CLAUDE.md` summarises the project rules and the commit checklist. When a change alters a screen, route, env var, rule
+specs and `production_deploy.md` covers deployment step-by-step). Rules for changing each layer are skills in [`.claude/skills/`](.claude/skills/):
+- Per-layer: `pages`, `components`, `lib`, `api-routes`, `request-gate`, `e2e`
+- Project-wide: `portal-conventions`, `deployment`
+
+`CLAUDE.md` summarises the project rules and the commit checklist. When a change alters a screen, route, env var, rule
 or spec, update the README, the matching doc and skill, and `CLAUDE.md` in the same commit.
 
 ## Notes
