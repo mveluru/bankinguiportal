@@ -28,7 +28,7 @@ Browser ──► proxy.ts (portal gate: customer ⇄ / , staff ⇄ /staff) ─�
 ```
 
 One backend owns everything: money, **identity** (customer and employee logins, JWTs, lockout, security questions,
-login status) and authorisation (roles and privileges). The portal is a client of it with two parts:
+login status) and authorization (roles and privileges). The portal is a client of it with two parts:
 
 - **Browser code** only calls this app's own `/api/*` route handlers through `lib/api.ts`.
 - **Route handlers** hold the backend's JWT in an httpOnly cookie, add it as a Bearer header and forward to the BFF. They
