@@ -156,7 +156,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now bankinguiportal
 journalctl -u bankinguiportal -f
 ```
 
-## Step 9: Put HTTPS in front
+## Step 9a: Put HTTPS in front (with nginx reverse proxy — recommended)
 
 The session cookie is `Secure` in production, so **the browser will not send it back over plain HTTP and sign-in
 will appear to loop**. Terminate TLS at a reverse proxy and forward to port 3000. Template for nginx:
@@ -177,6 +177,71 @@ server {
 
 The banking backend needs no CORS entry for this portal: only the Next server calls it, so it can stay on an internal
 address and off the public internet. The BFF endpoints it serves require the JWT it issues.
+
+### Why use a reverse proxy?
+
+- **No resource overhead in Node**: TLS termination happens in the proxy, not in the app
+- **One process can fail; others keep serving**: If Node crashes, nginx stays up (though it returns errors)
+- **Easy to add compression, caching, security headers**: nginx handles these at wire speed
+- **Simple rolling updates**: Run multiple Node instances behind nginx, restart one at a time
+- **DDoS/rate limiting**: Proxy can drop bad traffic before it reaches the app
+
+## Step 9b: Direct Node.js HTTPS (no reverse proxy — simpler)
+
+If you prefer **one process, one port, no reverse proxy overhead**:
+
+1. **Install an HTTPS certificate** (Let's Encrypt, self-signed, or your CA). Place the key and cert on the server:
+   ```bash
+   /etc/bankinguiportal/cert.pem      # Your certificate
+   /etc/bankinguiportal/key.pem       # Your private key
+   chmod 600 /etc/bankinguiportal/key.pem
+   ```
+
+2. **Update `.env` on the server** to tell Node.js to use HTTPS:
+   ```bash
+   NODE_ENV=production
+   PORT=443
+   HTTPS_CERT_PATH=/etc/bankinguiportal/cert.pem
+   HTTPS_KEY_PATH=/etc/bankinguiportal/key.pem
+   BANKING_BACKEND_URL=http://banking.internal:8081/brite
+   # ... rest of vars
+   ```
+
+3. **Modify systemd service** to run with elevated privileges (only Node can listen on port 443):
+   ```ini
+   # /etc/systemd/system/bankinguiportal.service
+   [Unit]
+   Description=Brite Banking UI Portal (Direct HTTPS)
+   After=network.target
+
+   [Service]
+   User=root                          # Must be root to listen on port 443
+   WorkingDirectory=/opt/bankinguiportal/current
+   EnvironmentFile=/etc/bankinguiportal.env
+   ExecStart=/usr/bin/npm start
+   Restart=on-failure
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+4. **Start it directly** (Next.js will read `HTTPS_CERT_PATH` and `HTTPS_KEY_PATH` and serve HTTPS on port 443):
+   ```bash
+   sudo systemctl daemon-reload && sudo systemctl enable --now bankinguiportal
+   journalctl -u bankinguiportal -f
+   ```
+
+**Trade-off:** Node.js now handles TLS, compression, and all the work directly. This uses more CPU but simplifies operations (one process, one port).
+
+Choose **9a (with nginx)** if you want:
+- Separation of concerns (proxy vs app)
+- Built-in compression, caching, headers
+- Easier scaling (multiple Node instances)
+
+Choose **9b (direct Node.js)** if you want:
+- Simplicity (one process)
+- Lower latency (no proxy hop)
+- Fewer moving parts
 
 ## Step 10: Verify, and know how to roll back
 
@@ -279,6 +344,7 @@ docker push $REGISTRY/bankinguiportal:latest
 
 ### Run the container
 
+**Option A: With reverse proxy (HTTP only, nginx handles HTTPS)**
 ```bash
 docker run \
   --rm \
@@ -288,9 +354,23 @@ docker run \
   $REGISTRY/bankinguiportal:$VERSION
 ```
 
-Keep `.env` file outside the image (mounted at runtime). Do not bake secrets into the image.
+**Option B: Direct HTTPS (Node.js handles TLS)**
+```bash
+docker run \
+  --rm \
+  -p 443:3000 \
+  --env-file /etc/bankinguiportal.env \
+  -e HTTPS_CERT_PATH=/etc/ssl/certs/cert.pem \
+  -e HTTPS_KEY_PATH=/etc/ssl/private/key.pem \
+  -v /etc/ssl/certs/cert.pem:/etc/ssl/certs/cert.pem:ro \
+  -v /etc/ssl/private/key.pem:/etc/ssl/private/key.pem:ro \
+  --health-interval 30s \
+  $REGISTRY/bankinguiportal:$VERSION
+```
 
-### Docker Compose (production example)
+Keep `.env` file outside the image (mounted at runtime). Mount certificates as read-only volumes. Do not bake secrets into the image.
+
+### Docker Compose — Option A: With nginx (recommended)
 
 ```yaml
 version: '3.9'
@@ -298,8 +378,8 @@ services:
   bankinguiportal:
     image: docker.io/yourorg/bankinguiportal:latest
     container_name: bankinguiportal
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -338,8 +418,43 @@ networks:
     driver: bridge
 ```
 
-Set env vars at runtime via `-e`, `--env-file`, or in the compose file (no rebuild needed). Secrets can be
-stored in Docker secrets or a secrets management system and passed to containers at runtime.
+### Docker Compose — Option B: Direct Node.js HTTPS (no nginx)
+
+```yaml
+version: '3.9'
+services:
+  bankinguiportal:
+    image: docker.io/yourorg/bankinguiportal:latest
+    container_name: bankinguiportal
+    ports:
+      - "443:3000"                    # Map host 443 to container 3000 (Node handles HTTPS)
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      BANKING_BACKEND_URL: http://banking.internal:8081/brite
+      BFF_PORTAL_PATH: /bff/v1/portal
+      BFF_STAFF_PATH: /bff/v1/staff
+      NEXT_PUBLIC_SESSION_WARNING_SECONDS: "120"
+      NEXT_PUBLIC_IDLE_TIMEOUT_SECONDS: "120"
+      HTTPS_CERT_PATH: /etc/ssl/certs/cert.pem
+      HTTPS_KEY_PATH: /etc/ssl/private/key.pem
+    volumes:
+      - /etc/ssl/certs/cert.pem:/etc/ssl/certs/cert.pem:ro
+      - /etc/ssl/private/key.pem:/etc/ssl/private/key.pem:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('https').get({hostname:'localhost', port:3000, path:'/login', rejectUnauthorized:false}, (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+```
+
+**Option A (with nginx):** More moving parts, better separation, easier to scale.  
+**Option B (direct Node):** Simpler, faster (no proxy hop), one process.
+
+Set env vars at runtime via `-e`, `--env-file`, or in the compose file (no rebuild needed). Mount certificates as volumes,
+never bake them into the image.
 
 ### Verify the container
 
