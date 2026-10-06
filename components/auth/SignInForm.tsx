@@ -49,6 +49,13 @@ function Form({ kind }: { kind: PortalKind }) {
         <input name="password" type="password" required autoComplete="current-password" />
       </label>
       {error && <ErrorMessage message={error} />}
+      {/* The two portals have separate logins: a wrong-credentials answer is often the right password on the wrong page. */}
+      {error && /invalid username or password/i.test(error) && (
+        <p className="muted" role="note">
+          {staff ? "Not an employee? " : "An employee? "}
+          <Link href={staff ? "/login" : "/staff/login"}>{staff ? "Use the customer sign in" : "Use the staff sign in"}</Link>.
+        </p>
+      )}
       <button type="submit" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
       </button>

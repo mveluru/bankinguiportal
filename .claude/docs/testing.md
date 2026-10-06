@@ -26,7 +26,7 @@ specs need `CH-0000088291` to be active.
 | `customer-account.spec.ts` | Customer B: lookup box pre-filled and read-only, View shows details, older-session fallback, Statements with print and CSV (Generate is mocked), grey note when details can't load |
 | `staff.spec.ts` | Staff sign-in, role button and permissions, lookup, employees list, teller restrictions, reactivate page, customer and employee rate-limit panels (PUT mocked), sign-out |
 | `login-count.spec.ts` | "Logins today: N" beside Sign out (mocked and live, once per page load, 320px layout), Sign out styled like Dark, blocked-sign-in message |
-| `blocked-login.spec.ts` | SUSPENDED, CLOSED, INACTIVE and DORMANT sign-ins show the backend's message and start no session; one real-backend check |
+| `blocked-login.spec.ts` | SUSPENDED, CLOSED, INACTIVE and DORMANT sign-ins show the backend's message and start no session; one real-backend check; a staff username on the customer page (and the reverse) shows "Invalid username or password" with a link to the other sign-in |
 | `withdraw-address.spec.ts` | The withdraw and deposit forms are pre-filled with the holder's address; staff must tick the required "I verified the customer's address" box to withdraw or deposit (never shown to customers; Clear unticks it); the overview and POST are mocked, and one live check skips itself until the backend returns `holderAddress` |
 | `close-dialog.spec.ts` | Close account asks Yes/No; only No is clicked, so nothing is closed |
 | `idle.spec.ts` | Idle sign-out after 2 minutes (fake clock) and activity keeping the session alive |

@@ -33,3 +33,19 @@ test("customer0001 (suspended account) is refused by the real backend with its m
   await expect(page.getByRole("alert").filter({ hasText: /Sign-in is not available: your account status is/ })).toBeVisible();
   await expect(page).toHaveURL(/\/login$/);
 });
+
+// Employees and customers sign in on different pages: a staff username on the customer page is "Invalid username or password" (real
+// backend behaviour), and the message points to the other page.
+test("a wrong-credentials message points to the other portal's sign-in", async ({ page }) => {
+  await trySignIn(page, "priya.raman", "20260001"); // an employee on the customer page
+  await expect(page.getByRole("alert").filter({ hasText: "Invalid username or password" })).toBeVisible();
+  const hint = page.getByRole("note").filter({ hasText: "An employee?" });
+  await expect(hint).toBeVisible();
+  await hint.getByRole("link", { name: "Use the staff sign in" }).click();
+  await expect(page).toHaveURL(/\/staff\/login$/);
+
+  await page.getByLabel("Username").fill("customer0002");
+  await page.getByLabel("Password").fill("20260002"); // a customer on the staff page
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("note").filter({ hasText: "Not an employee?" }).getByRole("link", { name: "Use the customer sign in" })).toBeVisible();
+});

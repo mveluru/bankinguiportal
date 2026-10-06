@@ -173,6 +173,8 @@ or spec, update the README, the matching doc and skill, and `CLAUDE.md` in the s
   answers 403 with "Sign-in is not available: your account status is <STATUS>. Please contact the customer support service." and the sign-in
   screen shows exactly that text (no session starts). INACTIVE and DORMANT are set by hand on the backend for now, and the account screens say
   such an account is unavailable for transactions. Staff suspending a customer's only account therefore locks them out until it is reactivated.
+- **Two sign-in pages.** Customers sign in at `/login` and employees at `/staff/login`; the backend looks a username up only in its own portal, so a
+  staff username on the customer page is "Invalid username or password" (and the reverse). Both pages point to the other one when that message appears.
 - **Two portals, two token types.** `proxy.ts` sends a customer to `/` and an employee to `/staff`, and everyone else to the matching sign-in
   page. It reads only the token's type and expiry; the backend is the real access control (a customer token on a staff call is 403, and vice
   versa). The UI hides actions the role lacks, but never relies on that.
